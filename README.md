@@ -4,6 +4,7 @@ FortiFlex is a powerful Python-based tool designed to simplify the configuration
 
 FortiFlex works with configuration sections.
 Inside sections folder you will find 2 interesting files. migration_sections.txt that is used for the migration function(I tried to fetch as many section as I could) and the sections.txt which is used in the print configuration section. Any of them can be adjust to the needs of your fortigate device / model / version from https://fndn.fortinet.net. You will also see some configuration changes in the .py file that  are needed for my daily work working with the fortigates. Any of them can also be manipulated to meet your needs.
+It is also equipped with fully(i bilieve) logging so you know for every change if it is successful or not.
 
 Table of Contents
 
