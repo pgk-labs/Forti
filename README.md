@@ -84,3 +84,7 @@ git checkout -b feature-branch-name Commit your changes and push to your forked 
 8. Contact For questions, feedback, or issues, feel free to reach out:
 
 GitHub Issues: Please open an issue if you encounter any problems. Email: pgkerdidanis@hotmail.com
+
+
+
+Validate the changes before every action. I am not responsible for misconfigurations on the fortigate devices. 
