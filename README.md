@@ -34,9 +34,11 @@ Python 3.6 or later Access to a FortiGate device with API access enabled or user
 
 Clone the repository:
 
-git clone https://github.com/pgklabs/FortiFlex.git 
-cd FortiFlex Install dependencies: Run the following command to install all required libraries:
+git clone https://github.com/pgk-labs/FortiFlex.git
+cd FortiFlex 
 
+Install dependencies: Run the following command to install all required libraries:
+pip install -r requirements.txt
 
 Set up configuration: In the project’s root directory, a named folder should be created and then a .yaml file is required with the below key-value pairs. This file should store your FortiGate API credentials and connection details.
 
