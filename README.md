@@ -68,7 +68,7 @@ Replace the values with your actual FortiGate details.
 
 4. Usage
 
-Once installed, you can start FortiFlex by running the main Python file:
+Once libraries installed and configured the yaml file, you can start FortiFlex by running the main Python file:
 python fortiflex.py 
 
 You’ll be prompted with a menu to select specific functionalities.
