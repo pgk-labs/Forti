@@ -110,6 +110,6 @@ GitHub Issues: Please open an issue if you encounter any problems. Email: pgkerd
 
 9. Known issues
 
-Configurations that has a VPN tunnel as dependency (example fw rule with VPN tunnel as interface) will not work. You have to create manually the VPN tunnel first.
+- Configurations that have a VPN tunnel as dependency (example fw rule with VPN tunnel as interface) will not work. You have to create manually the VPN tunnel first.
 
 Validate the changes before every action. I am not responsible for misconfigurations on the fortigate devices. 
