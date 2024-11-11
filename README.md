@@ -24,7 +24,7 @@ Table of Contents
 6. Contribution Guidelines
 7. License
 8. Contact
-
+9. Known Issues
 
 1. Features
 
@@ -101,12 +101,14 @@ git checkout -b feature-branch-name Commit your changes and push to your forked 
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
-10. Contact
+8. Contact
 
 For questions, feedback, or issues, feel free to reach out:
 
 GitHub Issues: Please open an issue if you encounter any problems. Email: pgkerdidanis@hotmail.com
 
+9. Known issues
 
+Configurations that has a VPN tunnel as dependency (example fw rule with VPN tunnel as interface) will not work. You have to create manually the VPN tunnel first.
 
 Validate the changes before every action. I am not responsible for misconfigurations on the fortigate devices. 
