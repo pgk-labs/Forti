@@ -69,6 +69,7 @@ Replace the values with your actual FortiGate details.
 
 Once installed, you can start FortiFlex by running the main Python file:
 python fortiflex.py You’ll be prompted with a menu to select specific functionalities.
+Its main functionality is to connect to a fortigate device, download configuration localy to the PC as json(alter it if needed to add config) and then upload the config to the same or to another fortigate device.
 
 5. Directory Structure
 
