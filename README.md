@@ -70,7 +70,7 @@ Replace the values with your actual FortiGate details.
 Once installed, you can start FortiFlex by running the main Python file:
 python fortiflex.py You’ll be prompted with a menu to select specific functionalities.
 
-6. Directory Structure
+5. Directory Structure
 
 Here’s an overview of the directory structure for easy navigation:
 
