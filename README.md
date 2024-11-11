@@ -26,7 +26,8 @@ Table of Contents
 8. Contact
 9. Known Issues
 
-1. Features
+
+1.Features
 
 FortiFlex includes the following key features:
 
