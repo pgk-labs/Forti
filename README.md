@@ -26,7 +26,9 @@ Table of Contents
 8. Contact
 
 
-1. Features FortiFlex includes the following key features:
+1. Features
+
+FortiFlex includes the following key features:
 
 a. Print Configuration Sections: View, select,download, send and delete specific configuration from a FortiGate device. 
 b. Multi-VDOM Management: Enabling / disabling multi-vdom functionality. 
@@ -35,7 +37,9 @@ d. Migrate Configuration: Copy configurations from one FortiGate device to anoth
 e. Download Configuration: Save the current FortiGate configuration to a local file for backup or review. 
 f. Upload Configuration: Apply new configurations by uploading a saved configuration file to a FortiGate device.
 
-2. Installation Prerequisites Ensure you have the following:
+2. Installation Prerequisites
+
+Ensure you have the following:
 Python 3.6 or later Access to a FortiGate device with API access enabled or user credentials. Installation Steps
 
 Clone the repository:
@@ -48,7 +52,9 @@ pip install -r requirements.txt
 
 Set up configuration: In the project’s root directory, a named folder should be created and then a .yaml file is required with the below key-value pairs. This file should store your FortiGate API credentials and connection details.
 
-3. Configuration In your config.yaml file, add your FortiGate device's IP address and API key as follows: 
+3. Configuration
+
+In your config.yaml file, add your FortiGate device's IP address and API key as follows: 
 
 host: '192.168.1.1' 
 username: 'apiuser' 
@@ -58,10 +64,14 @@ api_key: 'apikey'
 
 Replace the values with your actual FortiGate details.
 
-4. Usage Once installed, you can start FortiFlex by running the main Python file:
+4. Usage
+
+Once installed, you can start FortiFlex by running the main Python file:
 python fortiflex.py You’ll be prompted with a menu to select specific functionalities.
 
-5. Directory Structure Here’s an overview of the directory structure for easy navigation:
+6. Directory Structure
+
+Here’s an overview of the directory structure for easy navigation:
 
 FortiFlex/
 
@@ -79,15 +89,21 @@ requirements.txt # Dependencies
 
 fortiflex.py     # The basic .py file.
 
-6. Contribution Guidelines Contributions to FortiFlex are welcome! Here’s how to contribute:
+6. Contribution Guidelines
+
+Contributions to FortiFlex are welcome! Here’s how to contribute:
 
 Fork this repository. Create a new branch with a descriptive name for your feature or bug fix:
 
 git checkout -b feature-branch-name Commit your changes and push to your forked repository. Create a pull request with a description of your changes. Please ensure that all new code includes proper documentation and comments to make it understandable for future contributors.
 
-7. License This project is licensed under the MIT License - see the LICENSE file for details.
+7. License
 
-8. Contact For questions, feedback, or issues, feel free to reach out:
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+10. Contact
+
+For questions, feedback, or issues, feel free to reach out:
 
 GitHub Issues: Please open an issue if you encounter any problems. Email: pgkerdidanis@hotmail.com
 
