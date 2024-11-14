@@ -6,6 +6,7 @@ import yaml
 from fortiosapi import FortiOSAPI
 from fortiosapi.exceptions import NotLogged
 import os
+import re
 from tqdm import tqdm
 from datetime import datetime
 import logging
@@ -46,7 +47,7 @@ class Fortigate:
             print("Wrong API key on the destination device. Please check.")
             sys.exit(1)
         except ConnectTimeout:
-            print("Timeout. Please check that your fortigate device is accessible via this method.")
+            print("Timeout. Please ensure that your fortigate device is accessible via this method.")
             sys.exit(1)
         else:
             okmsg = "Connected to destination Fortigate device."
@@ -64,7 +65,7 @@ class Fortigate:
             print("Wrong user credentials on the destination device. Please check.")
             sys.exit(1)
         except ConnectTimeout:
-            print("Timeout. Please check that your fortigate device is accessible via this method.")
+            print("Timeout. Please ensure that your fortigate device is accessible via this method.")
             sys.exit(1)
         else:
             okmsg = "Connected to destination Fortigate device."
@@ -93,7 +94,7 @@ class Fortigate:
         functionality = kwargs.get("functionality")
         path, name = section_name.split(' ')
         parameters =  'with_meta=false&skip=true&exclude-default-values=true&plain-text-password=1&datasource=true&with_meta=true&skip=true'  
-        if vdom=="root" or vdom=="global":
+        if vdom=="global":
             vdom=""
         config = self.api.get(path=path, name=name,parameters=parameters,vdom=vdom).get('results', [])
         section_name_underscore = section_name.replace(' ', '_')
@@ -135,7 +136,8 @@ class Fortigate:
             return output  
     #THE BELOW FUNCTION IS USED FOR THE REFERENCES CHECK
     def fetch_configuration(self,path, name, mkey, vdom):
-        parameters =  'with_meta=false&skip=true&exclude-default-values=true&datasource=true' 
+        parameters ='with_meta=false&skip=true&exclude-default-values=true&plain-text-password=1&datasource=true&with_meta=true&skip=true'
+        #parameters =  'with_meta=false&skip=true&exclude-default-values=true&datasource=true' 
         config = self.api.get(path=path, name=name, parameters=parameters, vdom=vdom, mkey=mkey).get('results', [])
         snmp_index = "snmp-index"
         devindex = "devindex"
@@ -359,7 +361,7 @@ class Fortigate:
     def get_object_config(self,output_filename,section_name):
         with open(output_filename, 'r') as objects:
             json_object = json.load(objects)
-##--Extract the "name" value and add it to the list--#
+        ##--Extract the "name" value and add it to the list--#
         section_length = [obj.get('name') for obj in json_object ]
         print("\n\n below are the objects of the section: \n\n")
         for index, name in enumerate(section_length, start=1):
@@ -368,6 +370,7 @@ class Fortigate:
             try:
                 select_object = int(input("\nEnter the index of the configuration you want to save(Or press 0 to exit): "))
                 if select_object == 0:
+                    print("\n")
                     break
                 if 1 <= select_object <= len(section_length):
                     selected_config = json_object[select_object - 1]  # Adjust index to zero-based
@@ -518,11 +521,12 @@ class Fortigate:
             try:
                 vdom = int(input("Please select a vdom for this configuration section (or '0' to quit): "))
                 if vdom == 0:
+                    print("\n")
                     break
                 if (vdom<1) or (vdom>len(vdoms)):
                     print("Invalid section number.")
                     vdom = None
-            except:
+            except TypeError:
                 print("Please select a valid option.")  
             else:
                 print(f"Selected vdom: {vdoms[int(vdom)-1]}")
@@ -537,45 +541,62 @@ class Fortigate:
                             continue
                         else:
                             print("Could not delete the object.")
+                    except EOFError:
+                        exit()
                     except:
                         print("Error occurred.")
 
-    def vdom_functionality(self,info_file,functionality):          
+    def vdom_functionality(self,info_file,functionality): 
+        try:         
             while True:
                 if functionality==1:
                     with open(f'yaml/{info_file}', 'r') as file:
                         info = yaml.safe_load(file)  
                     print("This function enables or disables the multi-vdom functionality. Proceed with caution.")
-                    answer =input(f"\n'Do you want to enable multi VDOM to the Fortigate device({info["host"]}? (e-> Enable / d-> Disable q->Quit): ")
-                    if answer=='e':
-                        url = f'https://{info["host"]}/api/v2/monitor/system/admin/change-vdom-mode'
-                        params = {
-                            "vdom-mode": "multi-vdom"
-                                    }
-                        headers = {
-                            "Authorization": f"Bearer {info["api_key"]}"
-                                }
-                        response = self.api._session.post(url=url, headers=headers, params=params, verify=False)
-                        print("Action Completed. The results may have not taken effect.")
-                        break
-                    if answer=='d':
-                        url = f'https://{info["host"]}/api/v2/monitor/system/admin/change-vdom-mode'
-                        params = {
-                            "vdom-mode": "no-vdom"
-                                    }
-                        headers = {
-                            "Authorization": f"Bearer {info["api_key"]}"
-                                }
-                        response = self.api._session.post(url=url, headers=headers, params=params, verify=False)
-                        print("Action Completed. The results may have not taken effect.")
-                        break
-                    if answer=="q":
-                        break
+                    check_vdom = self.api.get(path="system", name="global").get('results', [])
+                    if check_vdom["vdom-mode"]=="multi-vdom":
+                        print("Multi VDOM already enabled.") 
+                        check=1
                     else:
-                        print("\nDo you want to exit?(y-> YES / n-> NO)")   
+                        print("Multi-VDOM is not enabled.")  
+                        check=0
+                    if check==0:                 
+                        answer =input(f"\nEnable the multi-VDOM function on Fortigate device({info["host"]}? (e-> Enable q->Quit): ")
+                        if answer=='e':
+                            url = f'https://{info["host"]}/api/v2/monitor/system/admin/change-vdom-mode'
+                            params = {
+                                "vdom-mode": "multi-vdom"
+                                        }
+                            headers = {
+                                "Authorization": f"Bearer {info["api_key"]}"
+                                    }
+                            response = self.api._session.post(url=url, headers=headers, params=params, verify=False)
+                            print("Action Completed. The results may have not taken effect.")
+                            break
+                        if answer=="q":
+                            break  
+                    if check==1:
+                        answer =input(f"Disable the multi-VDOM function on Fortigate device({info["host"]}? (d-> Disable q->Quit): ")
+                        if answer=='d':
+                            url = f'https://{info["host"]}/api/v2/monitor/system/admin/change-vdom-mode'
+                            params = {
+                                "vdom-mode": "no-vdom"
+                                        }
+                            headers = {
+                                "Authorization": f"Bearer {info["api_key"]}"
+                                    }
+                            response = self.api._session.post(url=url, headers=headers, params=params, verify=False)
+                            print("Action Completed. The results may have not taken effect.")
+                            break
+                        if answer=="q":
+                            break
+                        else:
+                            print("\nInvalid choice.")   
                 else:
                     print("This is only available when one fortigate device has been selected.\n")
                     break
+        except EOFError:
+            exit()
 
     def enable_vdom_functionality(self,set_info_file):
         check_vdom = self.api.get(path="system", name="global").get('results', [])
@@ -621,6 +642,7 @@ class Fortigate:
             try:
                 selected_interface = int(input("\nEnter the index of the interface you want to change the name (Or press 0 to exit): "))
                 if selected_interface == 0:
+                    print("\n")
                     break
                 if 1 <= selected_interface <= len(interface_names_list):
                     selected_interface_config = interfaces[selected_interface - 1]  # Adjust index to zero-based
@@ -1075,9 +1097,29 @@ class Fortigate:
                         for ref in child_references:
                             for key, value in ref.items():
                                     path, name = key.split(' ', 1)
-                                    mkey = value
+                                    mkey = value                                 
                                     conf = fortigate.fetch_configuration(path, name, mkey, vdom)
-                                    self.send_configuration(path, name,mkey,conf)
+                                    if  'type' in conf[0] and 'interface' in conf[0]:
+                                        if path=="system" and name=="interface" and conf[0]["type"]=="tunnel" and conf[0]["interface"]["datasource"]=="system.interface":       
+                                                    path="vpn.ipsec"
+                                                    name="phase1-interface"
+                                                    conf = fortigate.fetch_configuration(path=path, name=name, vdom=vdom, mkey=mkey)
+                                                    self.send_configuration(path, name,mkey,conf)
+                                                    path="vpn.ipsec"
+                                                    name="phase2-interface"
+                                                    mkey=""
+                                                    conf = fortigate.fetch_configuration(path=path, name=name, vdom=vdom, mkey=mkey)
+                                                    for phase2 in conf:
+                                                        if phase2["phase1name"]["name"] == value:
+                                                            phase2_object = phase2.copy()
+                                                            print(f'Object: {value} | config: {phase2_object}')
+                                                            if isinstance(phase2_object, list):
+                                                                pass
+                                                            else:
+                                                                phase2_object = [phase2_object]
+                                                            self.send_configuration(path, name,mkey,phase2_object)
+                                    else:
+                                        self.send_configuration(path, name,mkey,conf)
                         #When over, flag changes to take the next initial reference value
                         flag = False                    
 
@@ -1096,12 +1138,13 @@ class Fortigate:
             try:
                 vdom = int(input("Please select a vdom for this configuration section (or '0' to quit): "))
                 if vdom == 0:
+                    print("\n")
                     break
                 if (vdom<1) or (vdom>len(vdoms)):
                     print("Invalid section number.")
                     vdom = None
-            except:
-                print("Please select a valid option.")  
+            except EOFError:
+                exit()
             else:
                 print(f"Selected vdom: {vdoms[int(vdom)-1]}")
                 vdom = vdoms[int(vdom)-1]
@@ -1168,6 +1211,91 @@ class Fortigate:
         else:
             print("Upload Completed.")
             return 0
+    
+    def rename_interface(self):
+        print("Warning! This requires the fortigate configuration file since it will modify it accordingly. Be sure to double check the results before upload it.")
+        current_directory = os.getcwd()
+        all_files = os.listdir(current_directory)
+        config_files = [file for file in all_files if file.endswith('.conf')]
+        print("\n\nFound the below fortigate configuration files. \n ")
+        num=1
+        for file in config_files:
+            print(f'{num} - {file}')  
+            num+=1
+        json_filename = None
+        while json_filename is None:
+            try:
+                json_filename = int(input("\n\nEnter the configuration file number to modify (or '0' to quit): "))
+                if json_filename == 0:
+                        print("\n")
+                        break 
+                if (json_filename) < 1 or (json_filename)>len(config_files):
+                    print("Please select a valid option.")         
+                    json_filename = None  
+            except EOFError:
+                exit()                                                  
+            except:
+                print("Invalid option.")
+                json_filename = None        
+            else:
+                if json_filename is not None:
+                    print(f"Selected file: {config_files[json_filename-1]}")
+                    json_filename=config_files[json_filename-1]
+                    while True:
+                            found = False
+                            old_interface_name = input("Please enter the old interface name: ")
+                            config_name = f'edit "{old_interface_name}"'
+                            with open(json_filename, "r") as file:
+                                for line in file:
+                                    if config_name in line or found==True:
+                                        found = True
+                                        print(line.strip())
+                                        if "next" in line:
+                                            break
+                            if found == True:
+                                is_right = input("Interface name found! Is the right interface?(y-> YES / n-> NO):")
+                                if is_right == 'y':
+                                    new_interface_name = input("Enter the new interface name: ")
+                                    # Define regex patterns to match the exact interface contexts
+                                    patterns = [
+                                        r'(^\s*set interface\s+"{}"\s*$)'.format(re.escape(old_interface_name)),
+                                        r'(^\s*set srcintf\s+"{}"\s*$)'.format(re.escape(old_interface_name)),
+                                        r'(^\s*set dstintf\s+"{}"\s*$)'.format(re.escape(old_interface_name)),
+                                        r'(^\s*edit\s+"{}"\s*$)'.format(re.escape(old_interface_name)),
+                                        r'(^\s*edit\s+"{}"\s+address\s*$)'.format(re.escape(old_interface_name)),
+                                    ]
+
+                                    # Compile all patterns into a single regex
+                                    compiled_patterns = re.compile('|'.join(patterns))
+
+                                    # Read the configuration file line by line and modify as necessary
+                                    with open(json_filename, "r") as file:
+                                        config_lines = file.readlines()
+
+                                    # Prepare a list for the modified lines
+                                    modified_lines = []
+
+                                    # Process each line to check if it matches any pattern and replace if needed
+                                    for line in config_lines:
+                                        if compiled_patterns.search(line):
+                                            # Replace only the exact interface name match
+                                            modified_line = line.replace(old_interface_name, new_interface_name)
+                                            modified_lines.append(modified_line)
+                                        else:
+                                            # Append the line unchanged if there's no match
+                                            modified_lines.append(line)
+
+                                    # Write the modified configuration back to a new file
+                                    json_filename_split = json_filename.split(".")[0]
+                                    with open(f'{json_filename_split}_modified.conf', "w") as file:
+                                        file.writelines(modified_lines)
+                                    print(f"Interface name replacement completed. Modified configuration saved to {f'{json_filename_split}_modified.conf'}\n")
+                                    break                               
+                                if is_right =='n':
+                                    break   
+                            if found==False:
+                                print("Interface name not found. Please check.")
+        
 
 def main():
     def start_screen():
@@ -1190,6 +1318,8 @@ def main():
                 if (functionality>2) or (functionality<1):
                     print("Invalid choice.")
                     functionality = None
+            except EOFError:
+                exit()
             except:  
                 print("Invalid")  
                 functionality = None 
@@ -1215,6 +1345,8 @@ def main():
                     if get_info == 0:
                         sys.exit()
                     source = file[get_info-1]
+                except EOFError:
+                    exit()
                 except:
                     print("Please select a valid option.")
                 else:
@@ -1235,6 +1367,8 @@ def main():
                         break
                     print("\n")
                     destination = file[set_info-1]
+                except EOFError:
+                    exit()
                 except:
                     print("Please select a valid option.")
                 else:
@@ -1261,48 +1395,51 @@ def main():
                 src_info = yaml.safe_load(get_file)    
                 return fortigate, dst_fortigate,dst_info,src_info
     def login_prompts(**kwargs):
-        functionality = kwargs.get("functionality")
-        fortigate= kwargs.get("fortigate")
-        info_file= kwargs.get("info_file")
-        set_info_file= kwargs.get("set_info_file")
-        #Login prompt for source device
-        if functionality == 1:
-            login = None
-            while login is None:
-                source_device_login_type = input(f"Do you want to connect as a local user or as an API user to the {src_info["host"]}? (l -> Local a-> API): ")
-                if source_device_login_type=='l':
-                    fortigate.user_login(info_file)
-                    break
-                if source_device_login_type=='a':
-                    fortigate.login(info_file)
-                    break
-                else:
-                    print("\nInvalid option.")
-                    login = None
-        if functionality == 2:
-            login = None
-            while login is None:
-                source_device_login_type = input(f"Do you want to connect as a local user or as an API user to the {src_info["host"]}? (l -> Local a-> API): ")
-                if source_device_login_type=='l':
-                    fortigate.user_login(info_file)
-                    break
-                if source_device_login_type=='a':
-                    fortigate.login(info_file)
-                    break
-                else:
-                    print("\nInvalid option.")
-                    login = None
-            #Login prompt for destination device
-            while True:
-                destination_device_login_type = input(f"Do you want to connect as a local user or as an API user to the {dst_info["host"]}? (l -> Local a-> API): ")
-                if destination_device_login_type=='l':
-                        dst_fortigate.user_login(set_info_file)
+        try:
+            functionality = kwargs.get("functionality")
+            fortigate= kwargs.get("fortigate")
+            info_file= kwargs.get("info_file")
+            set_info_file= kwargs.get("set_info_file")
+            #Login prompt for source device
+            if functionality == 1:
+                login = None
+                while login is None:
+                    source_device_login_type = input(f"Do you want to connect as a local user or as an API user to the {src_info["host"]}? (l -> Local a-> API): ")
+                    if source_device_login_type=='l':
+                        fortigate.user_login(info_file)
                         break
-                if destination_device_login_type=='a':
-                        dst_fortigate.login(set_info_file)
+                    if source_device_login_type=='a':
+                        fortigate.login(info_file)
                         break
-                else:
-                    print("\nInvalid option.")
+                    else:
+                        print("\nInvalid option.")
+                        login = None
+            if functionality == 2:
+                login = None
+                while login is None:
+                    source_device_login_type = input(f"Do you want to connect as a local user or as an API user to the {src_info["host"]}? (l -> Local a-> API): ")
+                    if source_device_login_type=='l':
+                        fortigate.user_login(info_file)
+                        break
+                    if source_device_login_type=='a':
+                        fortigate.login(info_file)
+                        break
+                    else:
+                        print("\nInvalid option.")
+                        login = None
+                #Login prompt for destination device
+                while True:
+                    destination_device_login_type = input(f"Do you want to connect as a local user or as an API user to the {dst_info["host"]}? (l -> Local a-> API): ")
+                    if destination_device_login_type=='l':
+                            dst_fortigate.user_login(set_info_file)
+                            break
+                    if destination_device_login_type=='a':
+                            dst_fortigate.login(set_info_file)
+                            break
+                    else:
+                        print("\nInvalid option.")
+        except EOFError:
+            exit()
     def main_screen(**kwargs):
         print("\033c", end="")
         functionality = kwargs.get("functionality")
@@ -1318,12 +1455,13 @@ def main():
                 if functionality == 2:
                     print(f"Connected to {src_info["host"]} as source and to {dst_info["host"]} as destination.")
                 print("\nSelect an option:")
-                print("1 - Print configuration sections")
-                print("2 - Multi-VDOM option")
+                print("1 - Print device configuration sections")
+                print("2 - Check Multi-VDOM option")
                 print("3 - Rename Fortigate interfaces(alias)")
                 print("4 - Migrate from source Fortigate device")
                 print("5 - Configuration Download")
                 print("6 - Configuration Upload")
+                print("7 - Rename Fortigate interface(altering .conf file)")
                 print("0 - Exit")
                 choice = input("Enter your choice: ")
                 if choice == '1':
@@ -1333,6 +1471,7 @@ def main():
                         try:
                             section_choice = int(input(f"\nEnter the section number (1-{len(section_list)}) (or '0' to quit): "))
                             if section_choice == 0:
+                                print("\n")
                                 break
                             if (section_choice) < 1 or section_choice > len(section_list):
                                 print("Invalid section number.")
@@ -1351,6 +1490,7 @@ def main():
                                     try:
                                         vdom = int(input("Please select a vdom for this configuration section (or '0' to quit): "))
                                         if vdom == 0:
+                                            print("\n")
                                             break
                                         if (vdom) < 1 or vdom > len(vdoms):
                                             print("Invalid section number.")
@@ -1378,17 +1518,31 @@ def main():
                                                     while json_filename is None:
                                                         try:
                                                             json_filename = int(input("\n\nEnter the JSON file number to send (or '0' to quit): "))
+                                                            print(f"input: {json_filename} | length: {len(config_files)}")
                                                             if json_filename == 0:
                                                                     break 
-                                                            if (json_filename<1) or (json_filename>len(config_files)):
+                                                            if (json_filename<1):
                                                                 print("Please select a valid option.")         
-                                                                json_filename = None                                                     
-                                                        except:
+                                                                json_filename = None 
+                                                                continue 
+                                                            if json_filename>len(config_files):
+                                                                print("Megalitero")
+                                                                print("Invalid option.")
+                                                                json_filename = None    
+                                                                continue                                                              
+                                                        except TypeError:
                                                             print("Invalid option.")
-                                                            json_filename = None        
+                                                            json_filename = None  
+                                                            continue  
+                                                        except ValueError:
+                                                            print("Invalid option.")
+                                                            json_filename = None 
+                                                            continue                                                                  
                                                         else:
-                                                            print(f"Selected file: {config_files[json_filename-1]}")
-                                                            while True:
+                                                            print(f"Selected file: {config_files[json_filename-1]}")                                                      
+                                                    while True:
+                                                                if json_filename==0:
+                                                                    break
                                                                 answer =input("\nAre you sure you want to send the configuration?(y-> YES / n-> NO): ")
                                                                 if answer=='y':
                                                                     dst_fortigate.send_object(config_files[json_filename-1], section_name,fortigate)
@@ -1413,30 +1567,45 @@ def main():
                                                     while json_filename is None:
                                                         try:
                                                             json_filename = int(input("\n\nEnter the JSON file number to delete (or '0' to quit): "))
+                                                            print(f"input: {json_filename} | length: {len(config_files)}")
                                                             if json_filename == 0:
+                                                                    print("\n")
                                                                     break 
-                                                            if (json_filename<1) or (json_filename>len(config_files)):
+                                                            if (json_filename<1):
                                                                 print("Please select a valid option.")         
-                                                                json_filename = None                                                     
-                                                        except:
+                                                                json_filename = None 
+                                                                continue 
+                                                            if json_filename>len(config_files):
+                                                                print("Megalitero")
+                                                                print("Invalid option.")
+                                                                json_filename = None    
+                                                                continue                                                              
+                                                        except TypeError:
                                                             print("Invalid option.")
-                                                            json_filename = None        
+                                                            json_filename = None  
+                                                            continue  
+                                                        except ValueError:
+                                                            print("Invalid option.")
+                                                            json_filename = None 
+                                                            continue                                                                  
                                                         else:
-                                                            print(f"Selected file: {config_files[json_filename-1]}")
-                                                            while True:
-                                                                answer =input("\nAre you sure you want to delete the configuration?(y-> YES / n-> NO): ")
-                                                                if answer=='y':
-                                                                    dst_fortigate.delete_object(config_files[json_filename-1], section_name)
-                                                                    break
-                                                                if answer=='n':
-                                                                    break          
-                                                                else:
-                                                                    print("Invalid choice. Please try again.") 
-                                    except:
-                                        print("Please select a valid option.")        
+                                                            print(f"Selected file: {config_files[json_filename-1]}")    
+                                                    while True:
+                                                        if json_filename==0:
+                                                            break                                                                
+                                                        answer =input("\nAre you sure you want to delete the configuration?(y-> YES / n-> NO): ")
+                                                        if answer=='y':
+                                                            dst_fortigate.delete_object(config_files[json_filename-1], section_name)
+                                                            break
+                                                        if answer=='n':
+                                                            break          
+                                                        else:
+                                                            print("Invalid choice. Please try again.") 
+                                    except EOFError:
+                                        exit()        
 
-                        except ValueError:
-                            print("Invalid value. Please enter a valid integer.") 
+                        except EOFError:
+                            exit()
 
                 elif choice == '2':
                     dst_fortigate.vdom_functionality(info_file,functionality)
@@ -1452,6 +1621,7 @@ def main():
                         dst_fortigate.migrate(info_file,set_info_file)
                 elif choice =='5':
                     if functionality==1:
+                        print("Warning! This is available only with an API user that has at least rw permissions on System.")
                         fortigate_ip = src_info["host"]
                         access_token = src_info["api_key"]
                         vdoms = fortigate.get_vdoms()
@@ -1464,27 +1634,58 @@ def main():
                             try:
                                 vdom_to_download = int(input("Please select a vdom (10 for global) (or '0' to quit): "))
                                 if vdom_to_download == 0:
+                                        print("\n")
                                         break
-                                if vdom_to_download == 10:
+                                elif vdom_to_download == 10:
                                     str(vdom_to_download)
-                                elif (vdom_to_download<1) or (vdom_to_download>len(vdoms)):
-                                    print("Invalid section number.")
-                                    vdom = None
-                            except:
+                                elif (vdom_to_download<1):
+                                    print("Invalid section number.\n")
+                                    vdom_to_download = None
+                                    continue
+                                elif vdom_to_download>len(vdoms):
+                                    print("Invalid section number.\n")
+                                    vdom_to_download = None
+                                    continue                                    
+                            except TypeError:
                                 print("Invalid.")
+                                vdom_to_download = None
+                                continue
+                            except ValueError:
+                                print("Invalid.")
+                                vdom_to_download = None
+                                continue
                             else:
                                 if vdom_to_download ==10:
                                     vdom_to_download="global"
                                     print(f"Selected vdom: Global\n")
-                                    dst_fortigate.download_config(fortigate_ip, vdom_to_download,access_token)
+                                    answer =input("\nAre you sure you want to download the configuration?(y-> YES / n-> NO): ")
+                                    while True:
+                                        if answer=='y':
+                                            dst_fortigate.download_config(fortigate_ip, vdom_to_download,access_token)
+                                            break
+                                        if answer=='n':
+                                            break
+                                        else:
+                                            print("Invald option.")
                                 else:
-                                    print(f"Selected vdom: {vdoms[int(vdom_to_download)-1]}\n")
-                                    vdom_to_download = vdoms[int(vdom_to_download)-1]
-                                    dst_fortigate.download_config(fortigate_ip, vdom_to_download,access_token)
+                                    print(f"Selected vdom: {vdoms[vdom_to_download-1]}\n")
+                                    answer =input("\nAre you sure you want to download the configuration?(y-> YES / n-> NO): ")
+                                    while True:
+                                        if answer=='y':
+                                            print(vdom_to_download)
+                                            vdom = vdoms[vdom_to_download-1]
+                                            dst_fortigate.download_config(fortigate_ip, vdom,access_token)
+                                            break
+                                        if answer=='n':
+                                            break
+                                        else:
+                                            print("Invald option.")                              
+
                     else:
                         print("This is only available when one fortigate device has been selected.\n")  
                 elif choice =='6':  
-                    if functionality==1:         
+                    if functionality==1:  
+                        print("Warning! This is available only with an API user that has at least rw permissions on System.")       
                         current_directory = os.getcwd()
                         all_files = os.listdir(current_directory)
                         config_files = [file for file in all_files if file.endswith('.conf')]
@@ -1493,62 +1694,105 @@ def main():
                         for file in config_files:
                             print(f'{num} - {file}')
                             num+=1
-                        while True:
+                        configuration = None
+                        while configuration is None:
                             try:
                                 configuration = int(input("\n\nEnter the configuration file number to send (or '0' to quit): "))
-                            except:
-                                print("Please select a valid option.")        
-                            else:
                                 if configuration == 0:
-                                    break  
+                                    print("\n")
+                                    break 
+                                elif (configuration<1):
+                                    print("Invalid section number.\n")
+                                    configuration = None
+                                    continue
+                                elif configuration>len(config_files):
+                                    print("Invalid section number.\n")
+                                    configuration = None
+                                    continue   
+                                                                 
+                            except TypeError:
+                                print("Invalid.")
+                                configuration = None
+                                continue
+                            except ValueError:
+                                print("Invalid.")
+                                configuration = None
+                                continue                                      
+                            else:
                                 print(f"Selected file: {config_files[configuration-1]}")
-                                fortigate_ip = src_info["host"]
-                                configuration = config_files[configuration-1] 
-                                vdoms = fortigate.get_vdoms()
-                                num=1
-                                for vdom_ in vdoms:
-                                    print(f'{num} - {vdom_}')
-                                    num+=1  
-                                vdom_to_upload = None 
-                                while vdom_to_upload is None:
-                                    try:
-                                        vdom_to_upload = int(input("Please select a vdom (10 for global) (or '0' to quit): "))
-                                        if vdom_to_upload == 0:
-                                                break
-                                        if vdom_to_upload == 10:
-                                            str(vdom_to_upload)
-                                        elif (vdom_to_upload<1) or (vdom_to_upload>len(vdoms)):
-                                            print("Invalid section number.")
-                                            vdom = None
-                                    except:
-                                        print("Invalid.")
-                                    else:
-                                        if vdom_to_upload ==10:
-                                            vdom_to_upload="global"
-                                            print(f"Selected vdom: Global\n")
+                        fortigate_ip = src_info["host"]
+                        configuration = config_files[configuration-1] 
+                        vdoms = fortigate.get_vdoms()
+                        num=1
+                        for vdom_ in vdoms:
+                            print(f'{num} - {vdom_}')
+                            num+=1  
+                        vdom_to_upload = None 
+                        while vdom_to_upload is None:
+                            if configuration == 0:
+                                break 
+                            try:
+                                vdom_to_upload = int(input("Please select a vdom (10 for global) (or '0' to quit): "))
+                                if vdom_to_upload == 0:
+                                    print("\n")
+                                    break
+                                elif vdom_to_upload == 10:
+                                    str(vdom_to_upload)
+                                elif (vdom_to_upload<1):
+                                    print("Invalid section number.\n")
+                                    vdom_to_upload = None
+                                    continue
+                                elif vdom_to_upload>len(vdoms):
+                                    print("Invalid section number.\n")
+                                    vdom_to_upload = None
+                                    continue                                    
+                            except TypeError:
+                                print("Invalid.")
+                                vdom_to_upload = None
+                                continue
+                            except ValueError:
+                                print("Invalid.")
+                                vdom_to_upload = None
+                                continue
+                            else:
+                                if vdom_to_upload ==10:
+                                    vdom_to_upload="global"
+                                    print(f"Selected vdom: Global\n")
+                                    answer =input("\nAre you sure you want to upload the configuration?(y-> YES / n-> NO): ")
+                                    while True:
+                                        if answer=='y':
                                             fortigate.upload_config(configuration,fortigate_ip,vdom_to_upload) 
-                            
+                                            break
+                                        if answer=='n':
+                                            break
                                         else:
-                                            vdom = vdoms[int(vdom_to_upload)-1]
-                                            print(f"Selected vdom: {vdoms[int(vdom_to_upload)-1]}\n")
-                                            fortigate.upload_config(configuration,fortigate_ip,vdom_to_upload) 
+                                            print("Invald option.")                            
+                                else:
+                                    vdom = vdoms[int(vdom_to_upload)-1]
+                                    print(f"Selected vdom: {vdoms[int(vdom_to_upload)-1]}\n")
+                                    answer =input("\nAre you sure you want to upload the configuration?(y-> YES / n-> NO): ")
+                                    while True:
+                                        if answer=='y':      
+                                            fortigate.upload_config(configuration,fortigate_ip,vdom_to_upload)
+                                            break                               
+                                        if answer=='n':
+                                            break
+                                        else:
+                                            print("Invald option.")
+                                    
 
                             break  
                     else:
                         print("This is only available when one fortigate device has been selected.\n")    
                 elif choice == '0':
                     break
+                elif choice == '7':
+                    print("THIS FUNCTION IS STILL UNDER DEVELOPMENT. USE IT AT YOUR OWN RISK")
+                    fortigate.rename_interface()
                 else:
                     print("Invalid choice. Please try again.")
         except EOFError:
-            while True:
-                answer =input("\nDo you want to exit?(y-> YES / n-> NO)")
-                if answer=='y':
-                    exit()
-                if answer=='n':
-                    main()
-                else:
-                    print("\nDo you want to exit?(y-> YES / n-> NO)")
+                exit()
         if functionality == 1:
             fortigate.logout()
         if functionality == 2:
