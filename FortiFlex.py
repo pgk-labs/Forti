@@ -176,14 +176,14 @@ class Fortigate:
                     if two_factor in item:
                         item.pop(two_factor)  
                     if "passwd" in item:
-                        item["passwd"]="Allax3me!!"
+                        item["passwd"]="randompswd"
                 except AttributeError:
                     pass 
         if path=="user" and name=="ldap":
             for item in config:
                 try:
                     if "password" in item:
-                        item["password"]="Allax3me!!"
+                        item["password"]="randompswd"
                 except AttributeError:
                     pass 
         if path=="system" and name=="sdwan":
@@ -247,7 +247,7 @@ class Fortigate:
                     if two_factor in item:
                         item.pop(two_factor)
                     if "passwd" in item:
-                        item["passwd"]="Allax3me!!"
+                        item["passwd"]="randompswd"
                 except AttributeError:
                     pass 
         if path=="user" and name=="ldap":
@@ -255,7 +255,7 @@ class Fortigate:
             for item in config:
                 try:
                     if "password" in item:
-                        item["password"]="Allax3me!!"
+                        item["password"]="randompswd"
                 except AttributeError:
                     pass 
         if path=="system" and name=="admin":
