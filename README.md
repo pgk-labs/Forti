@@ -14,7 +14,7 @@ Table of Contents
 1. Features
 	-Print Configuration Sections
 	-Multi-VDOM Management
-	-Rename FortiGate Interfaces (Alias)
+	-Rename FortiGate Interfaces
 	-Migrate Configuration from a Source Device
 	-Download Configuration
 	-Upload Configuration
@@ -34,7 +34,7 @@ FortiFlex includes the following key features:
 
 a. Print Configuration Sections: View, select,download, send and delete specific configuration from a FortiGate device. 
 b. Multi-VDOM Management: Enabling / disabling multi-vdom functionality. 
-c. Rename FortiGate Interfaces (Alias): Update interface names using aliases. 
+c. Rename FortiGate Interfaces (Alias): Update interface names using aliases or by altering the configuration file. 
 d. Migrate Configuration: Copy configurations from one FortiGate device to another, with automatic dependency checking. 
 e. Download Configuration: Save the current FortiGate configuration to a local file for backup or review. 
 f. Upload Configuration: Apply new configurations by uploading a saved configuration file to a FortiGate device.
@@ -73,7 +73,7 @@ python fortiflex.py
 
 You’ll be prompted with a menu to select specific functionalities.
 Its purpose is to connect to a fortigate device, download configuration localy to the PC as json(alter it if needed to add config) and then upload the config to the same or to another fortigate device. It can check configuration dependencies so you won't have to copy every depended object before transfering the final one.
-
+You can also use the tool for downlading / uploading configuration files, changing interface names and controlling the multi-vdom functionality of the device.
 
 5. Directory Structure
 
@@ -115,6 +115,6 @@ GitHub Issues: Please open an issue if you encounter any problems. Email: pgkerd
 
 9. Known issues
 
-- Configurations that have a VPN tunnel as dependency (example fw rule with VPN tunnel as interface) will not work. You have to create manually the VPN tunnel first.
+Not yet
 
 Validate the changes before every action. I am not responsible for misconfigurations on the fortigate devices. 
