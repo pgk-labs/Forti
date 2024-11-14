@@ -12,7 +12,7 @@ from datetime import datetime
 import logging
 import time
 from requests.auth import HTTPBasicAuth
-from requests.exceptions import ConnectTimeout
+from requests.exceptions import ConnectTimeout, InvalidURL
 from base64 import b64encode
 # Disable warnings about unverified HTTPS requests
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -49,6 +49,9 @@ class Fortigate:
         except ConnectTimeout:
             print("Timeout. Please ensure that your fortigate device is accessible via this method.")
             sys.exit(1)
+        except InvalidURL:
+            print("Invalid URL. Please ensure that your fortigate IP is valid.")
+            sys.exit(1)   
         else:
             okmsg = "Connected to destination Fortigate device."
             return okmsg
@@ -67,6 +70,9 @@ class Fortigate:
         except ConnectTimeout:
             print("Timeout. Please ensure that your fortigate device is accessible via this method.")
             sys.exit(1)
+        except InvalidURL:
+            print("Invalid URL. Please ensure that your fortigate IP is valid.")
+            sys.exit(1)            
         else:
             okmsg = "Connected to destination Fortigate device."
             return okmsg
