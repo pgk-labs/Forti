@@ -1,9 +1,9 @@
-FortiFlex: A Comprehensive FortiGate Configuration Management Tool
+FortigateMultiTool: A Comprehensive FortiGate Configuration Management Tool
 
-FortiFlex is a powerful Python-based tool designed to simplify the configuration and management of FortiGate devices via API. With FortiFlex, users can effortlessly manage configurations, handle multiple Virtual Domains (VDOMs), rename interfaces, migrate configurations between devices, and perform seamless configuration downloads and uploads.
+FortigateMultiTool is a powerful Python-based tool designed to simplify the configuration and management of FortiGate devices via API. With FortigateMultiTool, users can effortlessly manage configurations, handle multiple Virtual Domains (VDOMs), rename interfaces, migrate configurations between devices, and perform seamless configuration downloads and uploads.
 It is usefull for transfering configuration between fortigate devices that you want to be in sync (example a DR site).
 
-FortiFlex works with configuration sections.
+FortigateMultiTool works with configuration sections.
 Inside sections folder you will find 2 interesting files. migration_sections.txt that is used for the migration function(I tried to fetch as many section as I could) and the sections.txt which is used in the print configuration section. Any of them can be adjust to the needs of your fortigate device / model / version from https://fndn.fortinet.net. You will also see some configuration changes in the .py file that  are needed for my daily work working with the fortigates. Any of them can also be manipulated to meet your needs.
 It is also equipped with fully(i believe) logging so you know for every change if it is successful or not.
 
@@ -30,7 +30,7 @@ Table of Contents
 
 1.Features
 
-FortiFlex includes the following key features:
+FortigateMultiTool includes the following key features:
 
 a. Print Configuration Sections: View, select,download, send and delete specific configuration from a FortiGate device. 
 b. Multi-VDOM Management: Enabling / disabling multi-vdom functionality. 
@@ -46,8 +46,8 @@ Python 3.6 or later Access to a FortiGate device with API access enabled or user
 
 Clone the repository:
 
-git clone https://github.com/pgk-labs/FortiFlex.git
-cd FortiFlex 
+git clone https://github.com/pgk-labs/FortigateMultiTool.git
+cd FortigateMultiTool 
 
 Install dependencies: Run the following command to install all required libraries:
 pip install -r requirements.txt
@@ -68,8 +68,8 @@ Replace the values with your actual FortiGate details.
 
 4. Usage
 
-Once libraries installed and configured the yaml file, you can start FortiFlex by running the main Python file:
-python fortiflex.py 
+Once libraries installed and configured the yaml file, you can start FortigateMultiTool by running the main Python file:
+python FortigateMultiTool.py 
 
 You’ll be prompted with a menu to select specific functionalities.
 Its purpose is to connect to a fortigate device, download configuration localy to the PC as json(alter it if needed to add config) and then upload the config to the same or to another fortigate device. It can check configuration dependencies so you won't have to copy every depended object before transfering the final one.
@@ -79,7 +79,7 @@ You can also use the tool for downlading / uploading configuration files, changi
 
 Here’s an overview of the directory structure for easy navigation:
 
-FortiFlex/
+FortigateMultiTool/
 
 errors/   # containing a .json file with all errors the fortiosAPI can give(or at least what I have found)
 
@@ -93,11 +93,11 @@ README.md    # Project documentation
 
 requirements.txt # Dependencies
 
-fortiflex.py     # The basic .py file.
+FortigateMultiTool.py     # The basic .py file.
 
 6. Contribution Guidelines
 
-Contributions to FortiFlex are welcome! Here’s how to contribute:
+Contributions to FortigateMultiTool are welcome! Here’s how to contribute:
 
 Fork this repository. Create a new branch with a descriptive name for your feature or bug fix:
 
