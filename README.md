@@ -115,6 +115,6 @@ GitHub Issues: Please open an issue if you encounter any problems. Email: pgkerd
 
 9. Known issues
 
-Not yet
+1 - Cannot find correctly dependencies when loading a JSON file with many objects (example: entire firewall poliies JSON file rather than a single firewall policy)
 
 Validate the changes before every action. I am not responsible for misconfigurations on the fortigate devices. 
