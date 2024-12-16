@@ -1156,7 +1156,7 @@ class Fortigate:
 
     def check_references(self,data):
     #Open migration section files which has the right section format
-        with open('sections/migration_sections.txt', 'r') as text_file:
+        with open('sections/migration_sections_v7.4.txt', 'r') as text_file:
             text_file_contents = text_file.read().splitlines() 
         reference_mapping = {}
         #Modify the file into a format without dots
