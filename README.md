@@ -1,5 +1,7 @@
 FortigateMultiTool: A Comprehensive FortiGate Configuration Management Tool
 
+** Disclaimer: The script can be modified to meet everyone's case requirements. I believe that I have make a clear script so you can adjust it as you want if something goes not as intended.
+
 FortigateMultiTool is a powerful Python-based tool designed to simplify the configuration and management of FortiGate devices via API. With FortigateMultiTool, users can effortlessly manage configurations, handle multiple Virtual Domains (VDOMs), rename interfaces, migrate configurations between devices, and perform seamless configuration downloads and uploads.
 It is usefull for transfering configuration between fortigate devices that you want to be in sync (example a DR site).
 
@@ -74,6 +76,8 @@ python FortigateMultiTool.py
 You’ll be prompted with a menu to select specific functionalities.
 Its purpose is to connect to a fortigate device, download configuration localy to the PC as json(alter it if needed to add config) and then upload the config to the same or to another fortigate device. It can check configuration dependencies so you won't have to copy every depended object before transfering the final one.
 You can also use the tool for downlading / uploading configuration files, changing interface names and controlling the multi-vdom functionality of the device.
+
+Regarding migration function, you choose two fortigates (one source and one destination) in order for tranfering the configuration from one to another. This has helped me a lot when a customer needed a fortigate replacement to another model.
 
 5. Directory Structure
 
