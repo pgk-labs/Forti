@@ -99,6 +99,10 @@ class Fortigate:
         migration_flag = kwargs.get("migration_flag")    
         vdom = kwargs.get("vdom")
         functionality = kwargs.get("functionality")
+        dst_fortigate = kwargs.get("dst_fortigate")
+        interface_translations = kwargs.get("interface_translations")
+        mgmt_interface = kwargs.get("mgmt_interface")
+        generic_user_password = kwargs.get("generic_user_password")
         path, name = section_name.split(' ')
         parameters =  'with_meta=false&skip=true&exclude-default-values=true&plain-text-password=1&datasource=true&skip=true'  
         if vdom=="global":
@@ -142,7 +146,7 @@ class Fortigate:
                     print("\nInvalid option.")
                     break
         if migration_flag == True:
-            output = self.config_filtering(path,name,config,output_filename)
+            output = self.config_filtering(path,name,config,output_filename,dst_fortigate,interface_translations,mgmt_interface,generic_user_password)
             return output  
     #THE BELOW FUNCTION IS USED FOR THE REFERENCES CHECK
     def fetch_configuration(self,path, name, mkey, vdom):
@@ -176,6 +180,15 @@ class Fortigate:
                     item.pop(seed)     
             except AttributeError:
                 pass
+        if path=="router" and name=="static":
+            #Removing default route for safety
+            for item in config:
+                try:
+                    if ("dstaddr" not in item) and ("dst" not in item) :
+                        item.pop("seq-num") 
+                        item.pop("q_origin_key")
+                except AttributeError:
+                    pass   
         if path=="user" and name=="local":
             for item in config:
                 try:
@@ -213,7 +226,7 @@ class Fortigate:
 
         return config
 
-    def config_filtering(self,path,name,config,output_filename):
+    def config_filtering(self,path,name,config,output_filename,dst_fortigate,interface_translations,mgmt_interface,generic_user_password): 
         # Below values are being popped because fortigate api cannot pass them.
         snmp_index = "snmp-index"
         devindex = "devindex"
@@ -224,6 +237,15 @@ class Fortigate:
         fortitoken = "fortitoken"
         two_factor = "two-factor"
         password = "password"
+        def global_replace(data, search_value, replace_value):
+                    if isinstance(data, dict):
+                        return {key: global_replace(value, search_value, replace_value) for key, value in data.items()}
+                    elif isinstance(data, list):
+                        return [global_replace(item, search_value, replace_value) for item in data]
+                    elif data == search_value:
+                        return replace_value
+                    else:
+                        return data
         for item in config:
             try:
                 if snmp_index in item:
@@ -239,13 +261,23 @@ class Fortigate:
                     item.pop(seed)
             except AttributeError:
                 pass
-        
+        '''
         if path=="system" and name=="settings":
         #Enable ssl-vpn setting
                 try:   
                     config["gui-sslvpn"]="enable"  
                 except AttributeError:
                     pass        
+        '''
+        if path=="router" and name=="static":
+            #Removing default route for safety
+            for item in config:
+                try:
+                    if ("dstaddr" not in item) and ("dst" not in item) :
+                        item.pop("seq-num") 
+                        item.pop("q_origin_key")
+                except AttributeError:
+                    pass                                   
         if path=="user" and name=="local":
             #Fortigate api cannot handle id, fortitokens and two factor config
             for item in config:
@@ -257,15 +289,14 @@ class Fortigate:
                     if two_factor in item:
                         item.pop(two_factor)
                     if "passwd" in item:
-                        item["passwd"]="Allax3me!!" #Forti cannot transfer passwords as appearing as ENC XXXX, so we modify the value
+                        item["passwd"]=generic_user_password #Forti cannot transfer passwords as appearing as ENC XXXX, so we modify the value
                 except AttributeError:
                     pass 
         if path=="user" and name=="ldap":
-            #Forti cannot transfer passwords as appearing as ENC XXXX, so we modify the value
             for item in config:
                 try:
                     if "password" in item:
-                        item["password"]="Allax3me!!"
+                        item["password"]=generic_user_password
                 except AttributeError:
                     pass 
         if path=="system" and name=="admin":
@@ -280,9 +311,8 @@ class Fortigate:
                         service.pop("mode")
                         service["load-balance"]="enable"
         if path == "system" and name == "interface":
-            filtered_data = [item for item in config
-                                if item.get('name') != "mgmt"]  ##Filter mgmt interface
-            sorted_json_object = sorted(filtered_data, key=lambda x: (
+
+            sorted_json_object = sorted(config, key=lambda x: (
                     x.get('type') != 'physical',        # Physical interfaces first
                     x.get('type') != 'aggregate',       # Aggregate interfaces next
                     'vlanid' not in x,                  # VLAN interfaces with 'vlanid' key
@@ -293,80 +323,42 @@ class Fortigate:
                     x.get('type') != 'sd-wan',          # SD-WAN interfaces
                     x.get('type') or ''                 # Alphabetical order if types are the same
         ))
-            with open(output_filename, 'w') as json_file:
-                json.dump(sorted_json_object, json_file, indent=4) 
+            if interface_translations:
+                for source_intf,dst_intf in interface_translations.items():
+                    search_value = source_intf
+                    replace_value = dst_intf
+                    updated_config = global_replace(sorted_json_object, search_value, replace_value)   
+                    sorted_json_object = updated_config 
+            for interface in sorted_json_object:
+                if interface["name"]==mgmt_interface:
+                    if mgmt_interface != "none":
+                        del interface["ip"]
+                        del interface["allowaccess"]    
+                with open(output_filename, 'w') as json_file:
+                        json.dump(sorted_json_object, json_file, indent=4)  
             return output_filename   
         else:
             #Make it a list if it is not
             if isinstance(config, list):
-                pass
+                if interface_translations:
+                    for source_intf,dst_intf in interface_translations.items():
+                        search_value = source_intf
+                        replace_value = dst_intf
+                        updated_config = global_replace(config, search_value, replace_value)   
+                        config = updated_config      
+                with open(output_filename, 'w') as json_file:
+                    json.dump(config, json_file, indent=4)  
             else:
                 config = [config]
-            with open(output_filename, 'w') as json_file:
-                    json.dump(config, json_file, indent=4)
+                if interface_translations:
+                    for source_intf,dst_intf in interface_translations.items():
+                        search_value = source_intf
+                        replace_value = dst_intf
+                        updated_config = global_replace(config, search_value, replace_value)   
+                        config = updated_config      
+                with open(output_filename, 'w') as json_file:
+                    json.dump(config, json_file, indent=4)  
             return output_filename
-    #THE BELOW FUNCTION IS NOT USED ANYWHERE - TESTING -
-    def interface_filtering(self,filtered_data,vdoms,section_name):   
-        json_object = filtered_data 
-        mgmt_name = "mgmt"
-        interface_types_all = [obj.get('type') for obj in json_object if 'type' in obj]  
-        interface_types = list(set(interface_types_all))
-        filterings ={
-                        "vdom":vdoms,
-                        "type": interface_types,
-                        "vlanid": True,
-                        }
-    ##--Filter out root VDOM for interface types--##
-        '''
-        for vdom_value in filterings["vdom"]:
-                    for type_value in filterings["type"]:
-                        filtered_filename = f"{output_filename}_vdom_{vdom_value}_type_{type_value}.json"
-                        filtered_data = [item for item in json_object
-                                              if item.get('vdom') == vdom_value
-                                              and item.get('type') == type_value
-                                              and item.get('name') != mgmt_name]  ##Filter mgmt interface    
-                        if filtered_data:
-                            with open(filtered_filename, 'w') as json_file:
-                                json.dump(filtered_data, json_file, indent=4)                                  
-                        print(f"\nFiltered VDOM '{vdom_value}' and interface type '{type_value}' configuration is saved as {filtered_filename}")
-    ##--Filter data for objects that have a 'vlanid' key--##
-        for vdom_value in filterings["vdom"]:
-            if filterings["vlanid"]:
-                filtered_filename = f"{output_filename}_vdom_{vdom_value}_vlans.json"
-                filtered_data = [item for item in json_object if item.get('vdom') == vdom_value and 'vlanid' in item]
-                with open(filtered_filename, 'w') as json_file:
-                    json.dump(filtered_data, json_file, indent=4)
-                print(f"\nFiltered VDOM '{vdom_value}' and interface type VLANS configuration is saved as {filtered_filename}")
-        '''
-        
-        sorted_json_object = sorted(json_object, key=lambda x: (
-                x.get('type') != 'physical',        # Physical interfaces first
-                x.get('type') != 'aggregate',       # Aggregate interfaces next
-                'vlanid' not in x,                      # VLAN interfaces with 'vlanid' key
-                x.get('type') != 'wifi',            # WiFi interfaces
-                x.get('type') != 'tunnel',          # Tunnel interfaces
-                x.get('type') != 'virtual-wire',    # Virtual Wire interfaces
-                x.get('type') != 'loopback',        # Loopback interfaces
-                x.get('type') != 'sd-wan',          # SD-WAN interfaces
-                x.get('type') or ''                  # Alphabetical order if types are the same
-    ))
-    
-        # Save the sorted list back to a new JSON file
-        sorted_output_filename = "system_interface_config.json"
-        with open(sorted_output_filename, 'w') as sorted_file:
-            json.dump(sorted_json_object, sorted_file, indent=4)
-        print(f"\nThe sorted JSON objects have been saved as {sorted_output_filename}")
-
-        while True:
-            answer =input("\nDo you see the indivindual objects?(y-> YES / n-> NO)")
-            if answer=='y':
-                self.get_object_config(sorted_output_filename,section_name)
-                break
-            if answer=='n':
-                break
-            else:
-                print("\nDo you want to exit?(y-> YES / n-> NO)")
-        return 0        
 
     def get_object_config(self,output_filename,section_name):
         with open(output_filename, 'r') as objects:
@@ -674,10 +666,10 @@ class Fortigate:
                 print("\nInvalid input. Please enter a valid index number.")
         return 0
 
-    def migration_file(self,phase,vdom,fail_directory_path):
+    def migration_file(self,phase,vdom,fail_directory_path,fortiosversion):
         section_list = []
         if phase==1:
-            with open('sections/migration_sections.txt', 'r') as f:
+            with open(f'sections/{fortiosversion}', 'r') as f:
                 for line in f:
                     section_name = line.strip()
                     section_list.append(section_name)                 
@@ -706,6 +698,98 @@ class Fortigate:
             parent_directory = f'Migration_{timestamp}'
             if not os.path.exists(parent_directory):
                 os.makedirs(parent_directory)
+            parameters =  'with_meta=false&skip=true&exclude-default-values=true' 
+            src_intf = fortigate.api.get(path="system",name="interface", parameters=parameters).get('results', [])
+            dst_intf = dst_fortigate.api.get(path="system",name="interface",parameters=parameters).get('results', [])
+            source_interfaces = [obj.get('name') for obj in src_intf if obj.get('type') == "physical"]
+            dst_interfaces = [obj.get('name') for obj in dst_intf if obj.get('type') == "physical"]
+            matching_interfaces = []
+            non_matching_interfaces = []
+            interface_translations = {}
+            for intf in source_interfaces:
+                if intf in dst_interfaces:
+                    matching_interfaces.append(intf)
+                else:
+                    non_matching_interfaces.append(intf)
+            diff = [item for item in dst_interfaces if item not in source_interfaces]
+            diff.append("Do Not Migrate This interface")
+            if non_matching_interfaces:
+                print("\nIt seems that some physical interfaces are not the same between fortigates. Please choose:")
+                while non_matching_interfaces:                   
+                    for interface in non_matching_interfaces:
+                        print(f'\nThe interface {interface} ({src_info["host"]}) will be migrated to {dst_info["host"]}, on port:')
+                        for index, name in enumerate(diff, start=1):
+                            print(f"{index} - {name}")
+                        loop_flag = True
+                        while loop_flag == True:
+                            try:
+                                answer = int(input("\nEnter the interface number: "))
+                                if 1 <= answer <= len(diff):
+                                    loop_flag = False
+                                    selected_interface = diff[answer - 1]                                 
+                                    non_matching_interfaces.remove(interface)
+                                    if answer == len(diff):
+                                        pass
+                                    else:
+                                        interface_translations[interface] = selected_interface
+                                        diff.pop(answer-1)
+                                else:
+                                    print("Invalid Choice.")
+                            except ValueError:
+                                print("\nInvalid input. Please enter a valid index number.")
+                            except KeyboardInterrupt:
+                                exit()
+                print("\nThe new interface mapping is: ") 
+                for old,new in interface_translations.items():
+                    print(f'{old} -> {new}')   
+            print("\nThe current management interface may be overlapped from the migration if they have the same interface name. In order to avoid this, you need to type the interface name. If not, please type none.")
+            mgmt_interface = input(f"Please type the interface name that corresponds to the destination's fortigate yaml file host field: ")
+            print("In case there is a match, the script will loose the connection and crash but the access will be intact, so start again the migration proccess. This will happen once.")
+            loop_flag = True
+            while loop_flag == True:
+                for interface in dst_intf:
+                    if (interface["name"]==mgmt_interface) or (mgmt_interface=="none"):
+                        loop_flag = False
+                if loop_flag == True:
+                    print("Did not found this interface name.")
+                    mgmt_interface = input(f"Please type the interface name that corresponds to the destination's fortigate yaml file host field: ")                        
+            print("FortiOS API cannot copy administrator passwords. They will be coppied without one, so you need to copy paste them from cli.")
+            print("FortiOS API cannot transfer passwords as appearing as ENC XXXX, so we modify the value. Please input a generic password. Later you can follow the above procedure.")
+            generic_user_password = input("Enter a generic user password: ")
+            print("\nSupported FortiOS versions:")
+            print("1 - v6.4")
+            print("2 - v7.4")
+            print("Note: These are used for the migration sections. May also work for different versions of fortiOS.")
+            flag = True
+            while flag == True:
+                try:
+                    version = int(input("\nEnter the source fortigate version: "))
+                    if version == 1:
+                        fortiosversion = "migration_sections_v6.4.txt"
+                        flag = False
+                        break
+                    if version == 2:
+                        fortiosversion = "migration_sections.txt"
+                        flag = False
+                        break
+                    else:
+                        print("Invalid Choice.")
+                except ValueError:
+                    print("Invalid Value.")
+                    flag = True
+                    version = input("\nEnter the source fortigate version: ")                   
+            loop_flag = True
+            begin =input("\nBegin Migration?(y-> YES / n-> NO): ") 
+            while loop_flag == True:
+                if begin=='y':      
+                    loop_flag = False
+                    break                              
+                if begin=='n':
+                    loop_flag = False
+                    exit()
+                else:
+                    print("Invald option.") 
+                    answer =input("\nBegin Migration?(y-> YES / n-> NO): ") 
             if len(vdom_instances)>1: #If vdoms > 1, ask for multivdom migration
                 flag = False
                 while flag == False:
@@ -751,12 +835,13 @@ class Fortigate:
                     else:
                         print("Invalid choice")
                         flag = False
+            print(f"Migration started using {fortiosversion} file.")
             for i in range(1,3): # making 2 rounds of passing sections
                     for vdom_instance in vdom_instances:
                         if vdom_instance=="root":
                             vdom_instance=""
                         success_log,failed_log,fail_directory_path,vdom_failed_sections = self.create_files_and_directories(i,vdom_instance,parent_directory)
-                        section_list = self.migration_file(i,vdom_instance,fail_directory_path)
+                        section_list = self.migration_file(i,vdom_instance,fail_directory_path,fortiosversion)
                         temp_vdom=vdom_instance
                         if vdom_instance=="":
                             print (f'\n\nMigrating from {src_info["host"]} to {dst_info["host"]}, root vdom...\n')
@@ -770,7 +855,7 @@ class Fortigate:
                                 path = split_section[0]
                                 name = split_section[1]
                             progress_bar.set_description(f'Migrating section: {path} {name}')
-                            config = fortigate.get_config(section_name=section, vdom=vdom_instance,migration_flag=True)
+                            config = fortigate.get_config(section_name=section, vdom=vdom_instance,migration_flag=True,dst_fortigate=dst_fortigate,interface_translations=interface_translations,mgmt_interface=mgmt_interface,generic_user_password=generic_user_password)
                             section_total_objects = len(config)
                             section_progress_bar = tqdm(total=section_total_objects, desc=f'Section: {path} {name}', position=1, leave=True)
                             with open(config, 'r') as json_file:
@@ -842,8 +927,11 @@ class Fortigate:
             with open("Unicode_Decode_Error.txt", 'a') as output:
                 output.write(f'{section} - Object: ')
                 json.dump(obj, output)
-                output.write('\n\n')   
+                output.write('\n\n')
+        except KeyboardInterrupt:
+            exit()
         return 0
+
     def host_info(self,info_file,set_info_file):
         with open(f'yaml/{info_file}', 'r') as get_file:
             src_info = yaml.safe_load(get_file)
@@ -1362,7 +1450,6 @@ class Fortigate:
                             if found==False:
                                 print("Interface name not found. Please check.")
         
-
 def main():
     def start_screen():
         print("\033c", end="")    
@@ -1870,5 +1957,6 @@ def main():
         fortigate, dst_fortigate,dst_info,src_info  = load_yamls(functionality=functionality,info_file=info_file,set_info_file=set_info_file)
         login_prompts(functionality=functionality,fortigate=fortigate,info_file=info_file,set_info_file=set_info_file)
         main_screen(functionality=functionality,fortigate=fortigate,dst_fortigate=dst_fortigate)
+
 if __name__ == "__main__":
     main()
