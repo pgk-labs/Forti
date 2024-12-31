@@ -3,3 +3,5 @@ requests
 pyyaml
 fortiosapi
 tqdm
+readline
+pyreadline
