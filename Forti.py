@@ -1828,6 +1828,8 @@ class Fortigate:
             for i, fw_rule in enumerate(new_policies, start=renumber): 
                     fw_rule["policyid"] = i
                     fw_rule["q_origin_key"] = i
+            for fw_rule in fw_rules:
+                original_policyid.append(fw_rule["policyid"]) 
             for old_policy_id in original_policyid:
                 del_fw_rule = self.api.delete(path="firewall", name="policy", parameters=parameters,vdom=vdom,mkey=old_policy_id)
             #Post the new rules with new IDs
