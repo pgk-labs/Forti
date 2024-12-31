@@ -2248,7 +2248,7 @@ def main():
 
                     elif choice =='4':
                         if functionality==1:
-                            print("Warning! This is available only with an API user that has at least rw permissions on System.")
+                            print("Warning! Required rw permissions on System. Then it depends on other permissions, what configuration you will get.")
                             fortigate_ip = src_info["host"]
                             access_token = src_info["api_key"]
                             vdoms = fortigate.get_vdoms()
@@ -2299,7 +2299,6 @@ def main():
                                         answer =input("\nAre you sure you want to download the configuration?(y-> YES / n-> NO): ")
                                         while True:
                                             if answer=='y':
-                                                print(vdom_to_download)
                                                 vdom = vdoms[vdom_to_download-1]
                                                 dst_fortigate.download_config(fortigate_ip, vdom,access_token)
                                                 break
@@ -2311,8 +2310,7 @@ def main():
                         else:
                             print("This is only available when one fortigate device has been selected.\n")  
                     elif choice =='5':  
-                        if functionality==1:  
-                            print("Warning! Required rw permissions on System. Then it depends on other permissions, what configuration you will get.")       
+                        if functionality==1:         
                             current_directory = os.getcwd()
                             all_files = os.listdir(current_directory)
                             config_files = [file for file in all_files if file.endswith('.conf')]
