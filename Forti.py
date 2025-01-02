@@ -92,9 +92,13 @@ class Fortigate:
         self.api.logout()
 
     def load_commands(self,file_path):
-        """Load commands from a text file into a list."""
-        with open(file_path, "r") as file:
-            return [line.strip() for line in file if line.strip()]
+        try:
+            """Load commands from a text file into a list."""
+            with open(file_path, "r") as file:
+                return [line.strip() for line in file if line.strip()]
+        except FileNotFoundError:
+            print(f"File not found! Make sure that {file_path} exists.")
+            exit()
 
     def cli_interface(self,commands):
         """Simple CLI interface with autocomplete and help functionality."""
@@ -158,7 +162,7 @@ class Fortigate:
                     flag = True
             except ValueError:
                 print("Invalid Value.")
-                flag = True  
+                flag = True
         commands = self.load_commands(fortiosversion)
         section = self.cli_interface(commands)
         return section
@@ -651,23 +655,26 @@ class Fortigate:
         return 0
 
     def migration_file(self,phase,vdom,fail_directory_path,fortiosversion):
-        section_list = []
-        if phase==1:
-            with open(f'sections/{fortiosversion}', 'r') as f:
-            #with open(f'sections/test.txt', 'r') as f:
-                for line in f:
-                    section_name = line.strip()
-                    section_list.append(section_name)                 
-                return section_list 
-        else:
-            if os.path.exists(f'{fail_directory_path}/phase_{phase-1}_failed_logs/failed_sections_vdom_{vdom}_phase_{phase-1}.txt'):
-                    with open(f'{fail_directory_path}/phase_{phase-1}_failed_logs/failed_sections_vdom_{vdom}_phase_{phase-1}.txt', 'r') as f:
-                        for line in f:
-                            section_name = line.strip()
-                            section_list.append(section_name)                 
-                        return section_list
+        try:
+            section_list = []
+            if phase==1:
+                with open(f'sections/{fortiosversion}', 'r') as f:
+                    for line in f:
+                        section_name = line.strip()
+                        section_list.append(section_name)                 
+                    return section_list 
             else:
-                    return section_list          
+                if os.path.exists(f'{fail_directory_path}/phase_{phase-1}_failed_logs/failed_sections_vdom_{vdom}_phase_{phase-1}.txt'):
+                        with open(f'{fail_directory_path}/phase_{phase-1}_failed_logs/failed_sections_vdom_{vdom}_phase_{phase-1}.txt', 'r') as f:
+                            for line in f:
+                                section_name = line.strip()
+                                section_list.append(section_name)                 
+                            return section_list
+                else:
+                        return section_list  
+        except FileNotFoundError:
+            print(f"File not found! Make sure that {fortiosversion} exists.")
+            exit()        
 
     def migrate(self,**kwargs):
         info_file = kwargs.get("info_file")
