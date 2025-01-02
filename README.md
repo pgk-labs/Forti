@@ -6,7 +6,7 @@ FortigateMultiTool is a powerful Python-based tool designed to simplify the conf
 It is usefull for transfering configuration between fortigate devices that you want to be in sync (example a DR site).
 
 FortigateMultiTool works with configuration sections.
-Inside sections folder you will find 2 interesting files. migration_sections.txt that is used for the migration function(I tried to fetch as many section as I could) and the sections.txt which is used in the print configuration section. Any of them can be adjust to the needs of your fortigate device / model / version from https://fndn.fortinet.net. You will also see some configuration changes in the .py file that  are needed for my daily work working with the fortigates. Any of them can also be manipulated to meet your needs.
+Inside sections folder you will find the files needed both for migration and configuration management purposes. Any of them can be adjust to the needs of your fortigate device / model / version from https://fndn.fortinet.net. You will also see some configuration changes in the .py file that  are needed for my daily work working with the fortigates. Any of them can also be manipulated to meet your needs.
 It is also equipped with fully(i believe) logging so you know for every change if it is successful or not.
 
 Be free to adjust the python functions to get the desired results. If you have any interesting idea, please let me know!
@@ -14,33 +14,34 @@ Be free to adjust the python functions to get the desired results. If you have a
 Table of Contents
 
 1. Features
-	-Print Configuration Sections
+	-Manage Configuration
 	-Multi-VDOM Management
 	-Rename FortiGate Interfaces
 	-Migrate Configuration from a Source Device
 	-Download Configuration
 	-Upload Configuration
-2. Installation
-3. Configuration
-4. Usage
-5. Directory Structure
-6. Contribution Guidelines
-7. License
-8. Contact
-9. Known Issues
+	-Firewall rules renumbering
+3. Installation
+4. Configuration
+5. Usage
+6. Directory Structure
+7. Contribution Guidelines
+8. License
+9. Contact
+10. Known Issues
 
 
 1.Features
 
 FortigateMultiTool includes the following key features:
 
-a. Print Configuration Sections: View, select,download, send and delete specific configuration from a FortiGate device. 
+a. Manage Configuration Sections: View, select,download, send and delete specific configuration from a FortiGate device. 
 b. Multi-VDOM Management: Enabling / disabling multi-vdom functionality. 
 c. Rename FortiGate Interfaces (Alias): Update interface names using aliases or by altering the configuration file. 
 d. Migrate Configuration: Copy configurations from one FortiGate device to another, with automatic dependency checking. 
 e. Download Configuration: Save the current FortiGate configuration to a local file for backup or review. 
 f. Upload Configuration: Apply new configurations by uploading a saved configuration file to a FortiGate device.
-
+g. Renumber firewall rules for better organization.
 2. Installation Prerequisites
 
 Ensure you have the following:
