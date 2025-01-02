@@ -551,14 +551,14 @@ class Fortigate:
                         print("Multi-VDOM is not enabled.")  
                         check=0
                     if check==0:                 
-                        answer =input(f"\nEnable the multi-VDOM function on Fortigate device({info["host"]}? (e-> Enable q->Quit): ")
+                        answer =input(f"\nEnable the multi-VDOM function on Fortigate device({info['host']}? (e-> Enable q->Quit): ")
                         if answer=='e':
                             url = f'https://{info["host"]}/api/v2/monitor/system/admin/change-vdom-mode'
                             params = {
                                 "vdom-mode": "multi-vdom"
                                         }
                             headers = {
-                                "Authorization": f"Bearer {info["api_key"]}"
+                                "Authorization": f"Bearer {info['api_key']}"
                                     }
                             response = self.api._session.post(url=url, headers=headers, params=params, verify=False)
                             print("Action Completed. The results may have not taken effect.")
@@ -566,14 +566,14 @@ class Fortigate:
                         if answer=="q":
                             break  
                     if check==1:
-                        answer =input(f"Disable the multi-VDOM function on Fortigate device({info["host"]}? (d-> Disable q->Quit): ")
+                        answer =input(f"Disable the multi-VDOM function on Fortigate device({info['host']}? (d-> Disable q->Quit): ")
                         if answer=='d':
                             url = f'https://{info["host"]}/api/v2/monitor/system/admin/change-vdom-mode'
                             params = {
                                 "vdom-mode": "no-vdom"
                                         }
                             headers = {
-                                "Authorization": f"Bearer {info["api_key"]}"
+                                "Authorization": f"Bearer {info['api_key']}"
                                     }
                             response = self.api._session.post(url=url, headers=headers, params=params, verify=False)
                             print("Action Completed. The results may have not taken effect.")
@@ -602,7 +602,7 @@ class Fortigate:
                         "vdom-mode": "multi-vdom"
                         }
                 headers = {
-                        "Authorization": f"Bearer {dst_info["api_key"]}"
+                        "Authorization": f"Bearer {dst_info['api_key']}"
                         }
                 
                 response = self.api._session.post(url=url, headers=headers, params=params, verify=False)
@@ -1560,7 +1560,7 @@ class Fortigate:
                                                             "name": f'{mkey} address',
                                                             "q_origin_key": f'{mkey} address',
                                                             "css-class": "ftnt-address ftnt-color-0",
-                                                            "subnet": f'{conf[0]['ip']}',
+                                                            "subnet": f'{conf[0]["ip"]}',
                                                             "type": "interface-subnet",
                                                             "interface": {
                                                                 "q_origin_key": f'{mkey}',
@@ -1932,10 +1932,13 @@ def main():
         functionality = None
         while functionality is None:
             try:
-                functionality = int(input("Enter your choice: "))
+                functionality = int(input("Enter your choice (or 0 to exit): "))
+                if functionality==0:
+                    return functionality
                 if (functionality>2) or (functionality<1):
                     print("Invalid choice.")
                     functionality = None
+                    continue
             except EOFError:
                 exit()
             except:  
@@ -2020,7 +2023,7 @@ def main():
             if functionality == 1:
                 login = None
                 while login is None:
-                    source_device_login_type = input(f"Do you want to connect as a local user or as an API user to the {src_info["host"]}? (l -> Local a-> API): ")
+                    source_device_login_type = input(f"Do you want to connect as a local user or as an API user to the {src_info['host']}? (l -> Local a-> API): ")
                     if source_device_login_type=='l':
                         fortigate.user_login(info_file)
                         break
@@ -2033,7 +2036,7 @@ def main():
             if functionality == 2:
                 login = None
                 while login is None:
-                    source_device_login_type = input(f"Do you want to connect as a local user or as an API user to the {src_info["host"]}? (l -> Local a-> API): ")
+                    source_device_login_type = input(f"Do you want to connect as a local user or as an API user to the {src_info['host']}? (l -> Local a-> API): ")
                     if source_device_login_type=='l':
                         fortigate.user_login(info_file)
                         break
@@ -2045,7 +2048,7 @@ def main():
                         login = None
                 #Login prompt for destination device
                 while True:
-                    destination_device_login_type = input(f"Do you want to connect as a local user or as an API user to the {dst_info["host"]}? (l -> Local a-> API): ")
+                    destination_device_login_type = input(f"Do you want to connect as a local user or as an API user to the {dst_info['host']}? (l -> Local a-> API): ")
                     if destination_device_login_type=='l':
                             dst_fortigate.user_login(set_info_file)
                             break
@@ -2061,7 +2064,7 @@ def main():
         functionality = kwargs.get("functionality")
         fortigate= kwargs.get("fortigate")
         dst_fortigate = kwargs.get("dst_fortigate")
-        src_host = src_info["host"]
+        src_host = src_info['host']
         if functionality == 1:
             dst_fortigate = fortigate
         def configuration_sections():
@@ -2132,7 +2135,7 @@ def main():
                                                             break
                                                         answer =input("\nAre you sure you want to send the configuration?(y-> YES / n-> NO): ")
                                                         if answer=='y':
-                                                            dst_fortigate.send_object(config_files[json_filename-1], section_name,fortigate,functionality,src_host,dst_info["host"])
+                                                            dst_fortigate.send_object(config_files[json_filename-1], section_name,fortigate,functionality,src_host,dst_info['host'])
                                                             break
                                                         if answer=='n':
                                                             break          
@@ -2207,7 +2210,7 @@ def main():
                     print("6 - Renumber Firewall Rules")
                     print("0 - Exit")
                 if functionality == 2:
-                    print(f"Connected to {src_host} as source and to {dst_info["host"]} as destination.")
+                    print(f"Connected to {src_host} as source and to {dst_info['host']} as destination.")
                     print("\nSelect an option:")
                     print("1 - Transfer configuration from source Fortigate device")
                     print("2 - Migrate from source Fortigate device")
@@ -2256,8 +2259,8 @@ def main():
                     elif choice =='4':
                         if functionality==1:
                             print("Warning! Required rw permissions on System. Then it depends on other permissions, what configuration you will get.")
-                            fortigate_ip = src_info["host"]
-                            access_token = src_info["api_key"]
+                            fortigate_ip = src_info['host']
+                            access_token = src_info['api_key']
                             vdoms = fortigate.get_vdoms()
                             num=1
                             for vdom_ in vdoms:
@@ -2351,7 +2354,7 @@ def main():
                                     continue                                      
                                 else:
                                     print(f"Selected file: {config_files[configuration-1]}")
-                            fortigate_ip = src_info["host"]
+                            fortigate_ip = src_info['host']
                             configuration = config_files[configuration-1] 
                             vdoms = fortigate.get_vdoms()
                             num=1
@@ -2472,6 +2475,8 @@ def main():
         fortigate, dst_fortigate,dst_info,src_info  = load_yamls(functionality=functionality,info_file=info_file,set_info_file=set_info_file)
         login_prompts(functionality=functionality,fortigate=fortigate,info_file=info_file,set_info_file=set_info_file)
         main_screen(functionality=functionality,fortigate=fortigate,dst_fortigate=dst_fortigate)
+    if functionality == 0:
+        exit()
 
 if __name__ == "__main__":
     main()
