@@ -2,12 +2,12 @@ FortigateMultiTool: A Comprehensive FortiGate Configuration Management Tool
 
 ** Disclaimer: The script can be modified to meet everyone's case requirements. I believe that I have make a clear script so you can adjust it as you want if something goes not as intended.
 
-FortigateMultiTool is a powerful Python-based tool designed to simplify the configuration and management of FortiGate devices via API. With FortigateMultiTool, users can effortlessly manage configurations, handle multiple Virtual Domains (VDOMs), rename interfaces, migrate configurations between devices, and perform seamless configuration downloads and uploads.
+FortigateMultiTool is a powerful Python-based tool designed to simplify the configuration and management of FortiGate devices via API. With FortigateMultiTool, users can effortlessly manage configurations, handle multiple Virtual Domains (VDOMs), rename interfaces, renumber firewall rules for better organization, migrate configurations between devices, and perform seamless configuration downloads and uploads.
 It is usefull for transfering configuration between fortigate devices that you want to be in sync (example a DR site).
 
 FortigateMultiTool works with configuration sections.
-Inside sections folder you will find the files needed both for migration and configuration management purposes. Any of them can be adjust to the needs of your fortigate device / model / version from https://fndn.fortinet.net. You will also see some configuration changes in the .py file that  are needed for my daily work working with the fortigates. Any of them can also be manipulated to meet your needs.
-It is also equipped with fully(i believe) logging so you know for every change if it is successful or not.
+Inside sections folder you will find the files needed both for migration and configuration management purposes. Any of them can be adjust to the needs of your fortigate device / model / version from https://fndn.fortinet.net since there is a mechanism at the script that can identify the difference in physical ports between the devices. You will also see some specific commands in the .py file that  are needed for my daily work working with the fortigates. Any of them can also be manipulated to meet your needs.
+It is also equipped with fully(I believe) logging so you know for every change if it is successful or not.
 
 Be free to adjust the python functions to get the desired results. If you have any interesting idea, please let me know!
 
