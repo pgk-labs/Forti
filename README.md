@@ -1,6 +1,6 @@
 FortigateMultiTool: A Comprehensive FortiGate Configuration Management Tool
 
-** Disclaimer: The script can be modified to meet everyone's case requirements. I believe that I have make a clear script so you can adjust it as you want if something goes not as intended.
+** Disclaimer: The script can be modified to meet everyone's case requirements. I believe that I have make a clear script so you can adjust it as you want if something goes not as intended. Validate the changes before every action. I am not responsible for misconfigurations on the fortigate devices. 
 
 FortigateMultiTool is a powerful Python-based tool designed to simplify the configuration and management of FortiGate devices via API. With FortigateMultiTool, users can effortlessly manage configurations, handle multiple Virtual Domains (VDOMs), rename interfaces, renumber firewall rules for better organization, migrate configurations between devices, and perform seamless configuration downloads and uploads.
 It is usefull for transfering configuration between fortigate devices that you want to be in sync (example a DR site).
@@ -122,4 +122,3 @@ GitHub Issues: Please open an issue if you encounter any problems. Email: pgkerd
 
 1 - Cannot find correctly dependencies when loading a JSON file with many objects (example: entire firewall poliies JSON file rather than a single firewall policy) (fixed)
 
-Validate the changes before every action. I am not responsible for misconfigurations on the fortigate devices. 
