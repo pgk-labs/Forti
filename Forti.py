@@ -13,7 +13,9 @@ from datetime import datetime
 import logging
 import time
 from requests.auth import HTTPBasicAuth
-from requests.exceptions import ConnectTimeout, InvalidURL
+from requests.exceptions import ConnectTimeout, InvalidURL,ConnectionError
+from http.client import RemoteDisconnected
+from urllib3.exceptions import ProtocolError
 from base64 import b64encode
 import copy
 try:
@@ -849,7 +851,7 @@ class Fortigate:
                                 path = split_section[0]
                                 name = split_section[1]
                             progress_bar.set_description(f'Migrating section: {path} {name}')
-                            config = fortigate.get_config(section_name=section, vdom=vdom_instance,migration_flag=True,dst_fortigate=dst_fortigate,interface_translations=interface_translations,mgmt_interface=mgmt_interface,generic_user_password=generic_user_password)
+                            config = fortigate.get_config(section_name=section, vdom=vdom_instance,migration_flag=True,dst_fortigate=dst_fortigate,interface_translations=interface_translations,mgmt_interface=mgmt_interface,generic_user_password=generic_user_password,src_host=src_info["host"])
                             section_total_objects = len(config)
                             section_progress_bar = tqdm(total=section_total_objects, desc=f'Section: {path} {name}', position=1, leave=True)
                             with open(config, 'r') as json_file:
@@ -882,13 +884,13 @@ class Fortigate:
                                                 self.migrate_logging(obj,response,success_log,failed_log,section,vdom_failed_sections)
                                 if vdom_instance=="":
                                     mkey = fortigate.api.get_mkey(path=path, name=name, data=obj)  
-                                    response = dst_fortigate.api.set(path=path, name=name, data=obj, mkey=mkey)
+                                    response = dst_fortigate.api.set(path=path, name=name, data=obj, mkey=mkey,vdom=vdom_instance)
                                     self.migrate_logging(obj,response,success_log,failed_log,section,vdom_failed_sections)
                                 else:
                                     if path=="system" and (name=="vdom" or name=="vdom-link" or name=="vdom-property" or name=="vdom-radius-server" or name=="vdom-exception" or name=="vdom-link"):
                                         vdom_instance="root"
                                     mkey = fortigate.api.get_mkey(path=path, name=name, data=obj,vdom=vdom_instance)                 
-                                    response = dst_fortigate.api.set(path=path, name=name, data=obj, mkey=mkey)
+                                    response = dst_fortigate.api.set(path=path, name=name, data=obj, mkey=mkey,vdom=vdom_instance)
                                     self.migrate_logging(obj,response,success_log,failed_log,section,vdom_failed_sections)
                                     vdom_instance=temp_vdom
                                 section_progress_bar.update(1)
@@ -924,6 +926,10 @@ class Fortigate:
                 output.write('\n\n')
         except KeyboardInterrupt:
             exit()
+        except RemoteDisconnected:
+            print("The migration terminated because of the migration of the same management interface. Please start again the process.")
+        except ConnectionError:
+            print("The migration terminated because of the migration of the same management interface. Please start again the process.")
         return 0
 
     def host_info(self,info_file,set_info_file):
@@ -1312,7 +1318,8 @@ class Fortigate:
             child_references = [] 
             temp_references=[] 
             separator="---------"
-            custom_order = ["system interface", "firewall address","firewall addrgrp","firewall ippool","router prefix-list","user tacacs+","user adgrp", "user local"]
+            custom_order = ["system interface", "firewall address","firewall addrgrp","firewall ippool","router prefix-list",
+                            "user tacacs+","user adgrp", "user local","router prefix-list"]
             '''
             custom_order = ["system vdom", "system vdom-dns", "system vdom-exception", "system vdom-link", "system vdom-netflow", "system vdom-property", 
                             "system vdom-radius-server", "system vdom-sflow", "system settings", "system interface", "alertemail setting", "application custom", 
@@ -2135,6 +2142,11 @@ def main():
                                                             break
                                                         answer =input("\nAre you sure you want to send the configuration?(y-> YES / n-> NO): ")
                                                         if answer=='y':
+                                                            if functionality==1:
+                                                                dst_info={
+                                                                    "host":""
+                                                                }
+                                                                dst_info['host']=""
                                                             dst_fortigate.send_object(config_files[json_filename-1], section_name,fortigate,functionality,src_host,dst_info['host'])
                                                             break
                                                         if answer=='n':
