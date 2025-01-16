@@ -2073,7 +2073,15 @@ def main():
         dst_fortigate = kwargs.get("dst_fortigate")
         src_host = src_info['host']
         if functionality == 1:
-            dst_fortigate = fortigate
+            dst_fortigate = fortigate 
+            dst_info={
+                       "host":""
+                      }
+            dst_info['host']=""
+            dst_host=dst_info 
+        if functionality == 2:
+            dst_info = kwargs.get("dst_info")
+            dst_host = dst_info['host']
         def configuration_sections():
                 try:
                     section_name = fortigate.print_config_sections()
@@ -2142,12 +2150,7 @@ def main():
                                                             break
                                                         answer =input("\nAre you sure you want to send the configuration?(y-> YES / n-> NO): ")
                                                         if answer=='y':
-                                                            if functionality==1:
-                                                                dst_info={
-                                                                    "host":""
-                                                                }
-                                                                dst_info['host']=""
-                                                            dst_fortigate.send_object(config_files[json_filename-1], section_name,fortigate,functionality,src_host,dst_info['host'])
+                                                            dst_fortigate.send_object(config_files[json_filename-1], section_name,fortigate,functionality,src_host,dst_host)
                                                             break
                                                         if answer=='n':
                                                             break          
@@ -2486,7 +2489,7 @@ def main():
         info_file, set_info_file = yaml_files(functionality)
         fortigate, dst_fortigate,dst_info,src_info  = load_yamls(functionality=functionality,info_file=info_file,set_info_file=set_info_file)
         login_prompts(functionality=functionality,fortigate=fortigate,info_file=info_file,set_info_file=set_info_file)
-        main_screen(functionality=functionality,fortigate=fortigate,dst_fortigate=dst_fortigate)
+        main_screen(functionality=functionality,fortigate=fortigate,dst_fortigate=dst_fortigate,dst_info=dst_info)
     if functionality == 0:
         exit()
 
