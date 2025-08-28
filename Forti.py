@@ -26,9 +26,9 @@ except ImportError:
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 # Set logging level to ERROR
 logging.basicConfig(level=logging.ERROR)
-sequence=1
+SEQUENCE=1
+JSON_NAME=""
 class Fortigate:
-    global sequence
     def __init__(self, info):
         self.info_params = self.info_file(info)
         self.host = self.info_params['host']
@@ -62,6 +62,8 @@ class Fortigate:
             sys.exit(1)
         except TimeoutError:
             print("Timeout. Please ensure that your fortigate device is accessible via this method.")
+        except KeyboardInterrupt:
+            pass
         else:
             okmsg = "Connected to destination Fortigate device."
             return okmsg
@@ -85,6 +87,8 @@ class Fortigate:
             sys.exit(1)  
         except TimeoutError:
             print("Timeout. Please ensure that your fortigate device is accessible via this method.")  
+        except KeyboardInterrupt:
+            pass
         else:
             okmsg = "Connected to destination Fortigate device."
             return okmsg
@@ -100,6 +104,8 @@ class Fortigate:
                 return [line.strip() for line in file if line.strip()]
         except FileNotFoundError:
             print(f"File not found! Make sure that {file_path} exists.")
+        except KeyboardInterrupt:
+            pass
             exit()
 
     def cli_interface(self,commands):
@@ -144,7 +150,8 @@ class Fortigate:
                 user_input="exit"
                 return user_input
 
-    def print_config_sections(self):
+    def print_config_sections(self,**kwargs):
+        skip_sections = kwargs.get("skip_sections")
         print("\nSupported FortiOS versions:")
         print("1 - v6.4")
         print("2 - v7.4")
@@ -165,9 +172,14 @@ class Fortigate:
             except ValueError:
                 print("Invalid Value.")
                 flag = True
-        commands = self.load_commands(fortiosversion)
-        section = self.cli_interface(commands)
-        return section
+            except KeyboardInterrupt:
+                pass
+        if not skip_sections:
+            commands = self.load_commands(fortiosversion)
+            section = self.cli_interface(commands)
+            return section
+        else:
+            return ""
 
     def get_config(self,**kwargs):    
         section_name = kwargs.get("section_name")
@@ -180,13 +192,22 @@ class Fortigate:
         generic_user_password = kwargs.get("generic_user_password")
         src_host = kwargs.get("src_host")
         path, name = section_name.split(' ')
-        parameters =  'with_meta=false&skip=true&exclude-default-values=true&plain-text-password=1&datasource=true&skip=true'  
+        parameters =  'with_meta=false&skip=true&exclude-default-values=true&plain-text-password=1&datasource=true&skip=true' 
+        filtered_config = [] 
         if vdom=="global":
             vdom=""
         if path == "system" and name == "vdom":
             config = self.api.get(path=path, name=name,parameters=parameters,vdom=vdom,mkey=vdom).get('results', [])
+        if path=="system" and name=="interface":   
+            config = self.api.get(path=path, name=name,parameters=parameters,vdom=vdom).get('results')     
+            for intf in config:
+                result = self.api.get(path=path, name=name, parameters=parameters, vdom = vdom,mkey=intf['name']).get('results')
+                if intf["vdom"]["name"] == vdom:
+                    filtered_config.append(result)
+            config = filtered_config
         else:
             config = self.api.get(path=path, name=name,parameters=parameters,vdom=vdom).get('results', [])
+
         section_name_underscore = section_name.replace(' ', '_')
         if ":" in src_host:
             src_host,port = src_host.split(":")
@@ -267,7 +288,6 @@ class Fortigate:
         two_factor = "two-factor"
         password = "password"
         cli_conn_status = "cli-conn-status"
-
         for item in config:
                 try:
                     if snmp_index in item:
@@ -376,8 +396,12 @@ class Fortigate:
                 for interface in sorted_json_object:
                     if interface["name"]==mgmt_interface:
                         if mgmt_interface != "none":
-                            del interface["ip"]
-                            del interface["allowaccess"]    
+                            if 'ip' in interface:
+                                del interface["ip"]
+                            if 'allowaccess' in interface:  
+                                del interface["allowaccess"]    
+                            del interface["vdom"]
+                            del interface["name"]
                     with open(output_filename, 'w') as json_file:
                             json.dump(sorted_json_object, json_file, indent=4)  
                 return output_filename   
@@ -423,11 +447,12 @@ class Fortigate:
                     config = [selected_config]
                     if "name" in selected_config:
                         selected_name = selected_config['name']
+                        section_name_underscore = section_name.replace(' ', '_')
                     #if "policyid" in selected_config:
                         #selected_name = selected_config['policyid']
                     if ":" in src_host:
                         src_host,port = src_host.split(":")
-                    selected_filename = f"{section_name}_{selected_name}_{src_host}_FortigateTool.json"
+                    selected_filename = f"{section_name_underscore}_{selected_name}_{src_host}_FortigateTool.json"
                     with open(selected_filename, 'w') as selected_file:
                         json.dump(config, selected_file, indent=4)
                     print(f"\nSelected configuration '{selected_name}' saved to {selected_filename}")
@@ -435,6 +460,8 @@ class Fortigate:
                     print("\nInvalid selection. Please choose a valid index.")
             except ValueError:
                 print("\nInvalid input. Please enter a valid index number.")
+            except UnboundLocalError:
+                print("Something wrong happened.")
 
     def logout(self):
         try:
@@ -856,7 +883,7 @@ class Fortigate:
                             section_progress_bar = tqdm(total=section_total_objects, desc=f'Section: {path} {name}', position=1, leave=True)
                             with open(config, 'r') as json_file:
                                 config_data = json.load(json_file)    
-                            for obj in config_data:    
+                            for obj in config_data:   
                                 if path=="system" and name=="sdwan":
                                     if "members" in obj:
                                         status_zone = [
@@ -883,6 +910,10 @@ class Fortigate:
                                                 response = self.api.put(path=path, name=name, data=config_data, mkey=mkey, vdom=vdom_instance)
                                                 self.migrate_logging(obj,response,success_log,failed_log,section,vdom_failed_sections)
                                 if vdom_instance=="":
+                                    #### testing if will migrate vdom names 
+                                    if path=="system" and name=="vdom-property":
+                                        if len(vdom_instances)==1:
+                                            break
                                     mkey = fortigate.api.get_mkey(path=path, name=name, data=obj)  
                                     response = dst_fortigate.api.set(path=path, name=name, data=obj, mkey=mkey,vdom=vdom_instance)
                                     self.migrate_logging(obj,response,success_log,failed_log,section,vdom_failed_sections)
@@ -1073,8 +1104,8 @@ class Fortigate:
                     json.dump(obj, response)
                     fail_output.write('\n\n')            
 
-    def config_logging(self,obj,response,success_log_file,fail_log_file,config_directory):
-        global sequence
+    def config_logging(self,obj,response,success_log_file,fail_log_file,config_directory,section):
+        global SEQUENCE
         with open("errors/error_codes.json", 'r') as file:
             error_codes = json.load(file)
         try:
@@ -1082,8 +1113,9 @@ class Fortigate:
                 if response.get('status') == 'success':
                     #Writing logs
                     with open(f'{config_directory}/{success_log_file}', 'a') as success_output:
+                        success_output.write(f'{section} - Object: ')
                         json.dump(obj, success_output)
-                        success_output.write(f'\nSequence: {sequence} | Response: ')
+                        success_output.write(f'\nSEQUENCE: {SEQUENCE} | Response: ')
                         json.dump(response['status'], success_output)
                         success_output.write('\n\n')
                 elif response.get('status') == 'error':      
@@ -1093,11 +1125,14 @@ class Fortigate:
                             error_code = str(response.get('error'))
                             error_message = error_codes.get(error_code, 'Unknown error code')
                             with open(f"{config_directory}/already_exists.txt", 'a') as output:
+                                output.write(f'{section} - Object: ')
                                 json.dump(obj, output)
                                 output.write('\n')
                                 if error_code in error_codes:
-                                    output.write(f"Sequence: {sequence} | Error {error_code}: {error_message}\n\n")
+                                    output.write(f'{section} - Object: ')
+                                    output.write(f"SEQUENCE: {SEQUENCE} | Error {error_code}: {error_message}\n\n")
                                 else:
+                                    output.write(f'{section} - Object: ')
                                     json.dump(response, output)
                                     output.write('\n\n')
                         else:
@@ -1105,28 +1140,33 @@ class Fortigate:
                             error_message = error_codes.get(error_code, 'Unknown error code')
                             #Writing logs
                             with open(f'{config_directory}/{fail_log_file}', 'a') as fail_output:
+                                fail_output.write(f'{section} - Object: ')
                                 json.dump(obj, fail_output)
                                 fail_output.write('\n')
                                 if error_code in error_codes:
-                                    fail_output.write(f"Sequence: {sequence} | Error {error_code}: {error_message}\n\n")
+                                    fail_output.write(f'{section} - Object: ')
+                                    fail_output.write(f"SEQUENCE: {SEQUENCE} | Error {error_code}: {error_message}\n\n")
                                 else:
+                                    fail_output.write(f'{section} - Object: ')
                                     json.dump(response, fail_output)
-                                    fail_output.write(f"\nSequence: {sequence}")
+                                    fail_output.write(f"\nSEQUENCE: {SEQUENCE}")
                                     fail_output.write('\n\n')
                     else:
                         #Writing logs
                         with open(f'{config_directory}/{fail_log_file}', 'a') as fail_output:
+                            fail_output.write(f'{section} - Object: ')
                             json.dump(obj, fail_output)  # Write the JSON object to the file
                             fail_output.write('\n')
-                            fail_output.write(f'Sequence: {sequence} |Response: ')
+                            fail_output.write(f'SEQUENCE: {SEQUENCE} |Response: ')
                             json.dump(response, fail_output)  # Write the JSON response to the file
                             fail_output.write('\n\n')                   
                 else:
                     #Writing logs
                     with open(f'{config_directory}/{fail_log_file}', 'a') as fail_output:
+                        fail_output.write(f'{section} - Object: ')
                         json.dump(obj, fail_output)
                         fail_output.write('\n')
-                        fail_output.write(f'\nSequence: {sequence} |Response: ')                       
+                        fail_output.write(f'\nSEQUENCE: {SEQUENCE} |Response: ')                       
                         json.dump(obj, response)
                         fail_output.write('\n\n')
             else:
@@ -1140,20 +1180,22 @@ class Fortigate:
                         response_content = response.text
                         response_type = 'text'
                         # Write the response type
-                        output.write(f'Sequence: {sequence} | Response ({response_type}): ')
+                        output.write(f'{section} - Object: ')
+                        output.write(f'SEQUENCE: {SEQUENCE} | Response ({response_type}): ')
                     # Write the response content (use json.dump for JSON, otherwise write raw text)
                     if response_type == 'JSON':
                         json.dump(response_content, output)
                     else:
                         output.write(response_content)
                         output.write('\n\n')  
-            sequence+=1             
+            SEQUENCE+=1             
         except AttributeError:       
                 #Writing logs      
                 with open(config_directory/fail_log_file, 'a') as fail_output:
+                    fail_output.write(f'{section} - Object: ')
                     json.dump(obj, fail_output)
                     fail_output.write('\n')
-                    fail_output.write(f'\nSequence: {sequence} |Response: ')                    
+                    fail_output.write(f'\nSEQUENCE: {SEQUENCE} |Response: ')                    
                     json.dump(obj, response)
                     fail_output.write('\n\n')            
 
@@ -1216,15 +1258,16 @@ class Fortigate:
             print(references)
         return references
 
-    def send_configuration(self,path, name,configuration):
+    def send_configuration(self,path, name,configuration,vdom):
+        section = f'{path} {name}'
         config_directory = "results"
         success_log_file ="success_log.txt"
         fail_log_file = "fail_log.txt"
         if not os.path.exists(config_directory):
             os.makedirs(config_directory)
         for obj in configuration:
-            response = self.api.set(path=path, name=name, data=obj)
-            self.config_logging(obj,response,success_log_file, fail_log_file,config_directory)
+            response = self.api.set(path=path, name=name, data=obj,vdom=vdom)
+            self.config_logging(obj,response,success_log_file, fail_log_file,config_directory,section)
 
     def process_interface_references(self,initial_references,vdom,fortigate,src_host,dst_host):
         parameters ='with_meta=false&skip=true&exclude-default-values=true&plain-text-password=1&datasource=true'
@@ -1585,8 +1628,8 @@ class Fortigate:
             exit()                   
 
     def send_object(self,json_filename, section_name,fortigate,functionality,src_host,dst_host):
-        global sequence
-        sequence=1
+        global SEQUENCE
+        SEQUENCE=1
         try:
             #The object that will be sent
             with open(json_filename, 'r') as file:
@@ -1600,7 +1643,10 @@ class Fortigate:
             vdom = None 
             while vdom is None:
                 try:
-                    vdom = int(input("Please select a vdom for this configuration section (or '0' to quit): "))
+                    if functionality==2:
+                        vdom = int(input("Please select the source vdom for this configuration section (or '0' to quit): "))
+                    else:
+                        vdom = int(input("Please select a vdom for this configuration section (or '0' to quit): "))
                     if vdom == 0:
                         print("\n")
                         break
@@ -1636,11 +1682,12 @@ class Fortigate:
                                 updated_config = self.global_replace(data, search_value, replace_value)   
                                 data = updated_config
                         self.config_filtering(path=path,name=name,config=data,references_flag=True)
-                        self.send_configuration(path,name,data)
+                        self.send_configuration(path,name,data,vdom)
                         print("Action completed. Please check the logs for further details.")
                         break
                     if functionality ==1:
-                        self.send_configuration(path,name,data)
+                        self.config_filtering(path=path,name=name,config=data,references_flag=True)
+                        self.send_configuration(path,name,data,vdom)
         except EOFError:
             exit()
         except KeyboardInterrupt:
@@ -2082,31 +2129,41 @@ def main():
         if functionality == 2:
             dst_info = kwargs.get("dst_info")
             dst_host = dst_info['host']
-        def configuration_sections():
+        def configuration_sections(**kwargs):
+                global JSON_NAME
+                skip_sections = kwargs.get("skip_sections")
                 try:
-                    section_name = fortigate.print_config_sections()
+                    section_name = fortigate.print_config_sections(skip_sections=skip_sections)
                     if section_name!="exit":
                         migration_flag = False
-                        vdoms = fortigate.get_vdoms()
-                        num=1
-                        for vdom_ in vdoms:
-                            print(f'{num} - {vdom_}')
-                            num+=1  
-                        vdom = None 
-                        while vdom is None:
-                            try:
-                                vdom = int(input("Please select a vdom for this configuration section (or '0' to quit): "))
-                                if vdom == 0:
-                                    print("\n")
-                                    break
-                                if (vdom) < 1 or vdom > len(vdoms):
-                                    print("Invalid section number.")
-                                    vdom = None
-                                else:
-                                    print(f"Selected vdom: {vdoms[int(vdom)-1]}")
-                                    vdom = vdoms[int(vdom)-1]
-                                    fortigate.get_config(section_name=section_name,migration_flag=migration_flag,vdom=vdom,functionality=functionality,src_host=src_host)
-                                    while True:
+                        if not skip_sections:
+                            vdoms = fortigate.get_vdoms()
+                            num=1
+                            for vdom_ in vdoms:
+                                print(f'{num} - {vdom_}')
+                                num+=1  
+                            vdom_flag = None 
+                            while vdom_flag is None:
+                                try:
+                                    vdom = int(input("Please select a vdom for this configuration section (or '0' to quit): "))
+                                    if vdom == 0:
+                                        print("\n")
+                                        break
+                                    if (vdom) < 1 or vdom > len(vdoms):
+                                        print("Invalid section number.")
+                                        vdom_flag = None
+                                    else:
+                                        print(f"Selected vdom: {vdoms[int(vdom)-1]}")
+                                        vdom = vdoms[int(vdom)-1]
+                                        fortigate.get_config(section_name=section_name,migration_flag=migration_flag,vdom=vdom,functionality=functionality,src_host=src_host)
+                                        vdom_flag = True
+                                except EOFError:
+                                    exit()    
+                                except ValueError:
+                                    print("Invalid choice.")
+                                    vdom_flag = None
+                                    continue
+                        while True:
                                         print("\nSelected Section Options:")
                                         print("1 - Send JSON file to FortiGate")
                                         print("2 - Delete object on Fortigate")
@@ -2144,12 +2201,15 @@ def main():
                                                     json_filename = None 
                                                     continue                                                                  
                                                 else:
-                                                    print(f"Selected file: {config_files[json_filename-1]}")                                                      
+                                                    print(f"Selected file: {config_files[json_filename-1]}")        
+                                                    JSON_NAME = config_files[json_filename-1]                                              
                                             while True:
                                                         if json_filename==0:
                                                             break
                                                         answer =input("\nAre you sure you want to send the configuration?(y-> YES / n-> NO): ")
                                                         if answer=='y':
+                                                            section_list = JSON_NAME.split("_")[:2]
+                                                            section_name = str.join(' ', section_list)                                                            
                                                             dst_fortigate.send_object(config_files[json_filename-1], section_name,fortigate,functionality,src_host,dst_host)
                                                             break
                                                         if answer=='n':
@@ -2194,6 +2254,9 @@ def main():
                                                 else:
                                                     print(f"Selected file: {config_files[json_filename-1]}")    
                                             while True:
+                                                if skip_sections:
+                                                        section_list = JSON_NAME.split("_")[:2]
+                                                        section_name = str.join(' ', section_list)
                                                 if json_filename==0:
                                                     break                                                                
                                                 answer =input("\nAre you sure you want to delete the configuration?(y-> YES / n-> NO): ")
@@ -2204,18 +2267,21 @@ def main():
                                                     break          
                                                 else:
                                                     print("Invalid choice. Please try again.") 
-                            except EOFError:
-                                exit()    
-                            except ValueError:
-                                print("Invalid choice.")
-                                vdom = None
-                                continue
+
                 except EOFError:
                     exit()
         try:
             while True:
+                if ":" in src_host:
+                    host = src_host.split(":")[0]
+                else:
+                    host = src_host
+                if ":" in dst_info['host']:
+                    dst_host_name = dst_info['host'].split(":")[0]
+                else:
+                    dst_host_name = dst_info['host']
                 if functionality == 1:
-                    print(f"Connected to {src_host} ")
+                    print(f"Connected to {host} ")
                     print("\nSelect an option:")
                     print("1 - Enter device configuration sections")
                     print("2 - Check Multi-VDOM option")
@@ -2223,17 +2289,19 @@ def main():
                     print("4 - Configuration Download")
                     print("5 - Configuration Upload")
                     print("6 - Renumber Firewall Rules")
+                    print("7 - Make Configuration Changes")
                     print("0 - Exit")
                 if functionality == 2:
-                    print(f"Connected to {src_host} as source and to {dst_info['host']} as destination.")
+                    print(f"Connected to {host} as source and to {dst_host_name} as destination.")
                     print("\nSelect an option:")
-                    print("1 - Transfer configuration from source Fortigate device")
+                    print("1 - Enter source device configuration sections")
                     print("2 - Migrate from source Fortigate device")
+                    print("3 - Send Configuration from source Fortigate device")
                     print("0 - Exit")
                 choice = input("Enter your choice: ")
                 if functionality == 1:
                     if choice == '1':
-                        configuration_sections()
+                        configuration_sections(skip_sections=False)
                     elif choice == '2':
                         if functionality==1:
                             dst_fortigate.vdom_functionality(info_file,functionality)
@@ -2454,21 +2522,25 @@ def main():
                                         user_choice = None
                                 except ValueError:
                                     print("Invalid choice.")
-                                    user_choice = None                      
+                                    user_choice = None    
                         else:
                             print("This is only available when one fortigate device has been selected.\n") 
+                    elif choice =='7':
+                        configuration_sections(skip_sections=True) 
                     elif choice == '0':
                         break
                     else:
                         print("Invalid choice. Please try again.")
                 elif functionality==2:
                     if choice == '1':
-                        configuration_sections()            
+                        configuration_sections(skip_sections=False)            
                     elif choice =='2':
                         if functionality == 1:
                             print("This is only allowed when two fortigates are selected.\n")
                         else:
-                            dst_fortigate.migrate(info_file=info_file,set_info_file=set_info_file,fortigate=fortigate, dst_fortigate=dst_fortigate)       
+                            dst_fortigate.migrate(info_file=info_file,set_info_file=set_info_file,fortigate=fortigate, dst_fortigate=dst_fortigate)
+                    if choice == '3':
+                        configuration_sections(skip_sections=True)          
                     elif choice == '0':
                         break
         except EOFError:
