@@ -199,12 +199,16 @@ class Fortigate:
         if path == "system" and name == "vdom":
             config = self.api.get(path=path, name=name,parameters=parameters,vdom=vdom,mkey=vdom).get('results', [])
         if path=="system" and name=="interface":   
-            config = self.api.get(path=path, name=name,parameters=parameters,vdom=vdom).get('results')     
+            config = self.api.get(path=path, name=name,parameters=parameters,vdom=vdom).get('results', [])     
             for intf in config:
-                result = self.api.get(path=path, name=name, parameters=parameters, vdom = vdom,mkey=intf['name']).get('results')
-                if intf["vdom"]["name"] == vdom:
-                    filtered_config.append(result)
-            config = filtered_config
+                result = self.api.get(path=path, name=name, parameters=parameters, vdom = vdom,mkey=intf['name']).get('results', [])
+                #print("second print:")
+                #print(intf["vdom"]["name"])
+                if vdom == "":
+                    if intf["vdom"]["name"] == "root":
+                        filtered_config.append(result)
+                config = filtered_config
+
         else:
             config = self.api.get(path=path, name=name,parameters=parameters,vdom=vdom).get('results', [])
 
@@ -376,7 +380,9 @@ class Fortigate:
                             service.pop("mode")
                             service["load-balance"]="enable"
             if path == "system" and name == "interface":
-                sorted_json_object = sorted(config, key=lambda x: (
+                #print(config)
+                flat_config = [item for sublist in config for item in sublist]
+                sorted_json_object = sorted(flat_config, key=lambda x: (
                         x.get('type') != 'physical',        # Physical interfaces first
                         x.get('type') != 'aggregate',       # Aggregate interfaces next
                         'vlanid' not in x,                  # VLAN interfaces with 'vlanid' key
