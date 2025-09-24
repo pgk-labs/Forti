@@ -20,7 +20,7 @@ from base64 import b64encode
 import copy
 try:
     import readline  # For Linux and macOS
-except ImportError:
+except:
     import pyreadline as readline  # For Windows
 # Disable warnings about unverified HTTPS requests
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -2575,3 +2575,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
