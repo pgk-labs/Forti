@@ -207,6 +207,9 @@ class Fortigate:
                 if vdom == "":
                     if intf["vdom"]["name"] == "root":
                         filtered_config.append(result)
+                else:
+                    if intf["vdom"]["name"] == vdom:
+                        filtered_config.append(result)
                 config = filtered_config
 
         else:
