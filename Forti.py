@@ -295,10 +295,17 @@ class Fortigate:
         two_factor = "two-factor"
         password = "password"
         cli_conn_status = "cli-conn-status"
+        if path=="system" and name =="interface":
+            config = [item for sublist in config for item in sublist]
         for item in config:
                 try:
-                    if snmp_index in item:
-                        item.pop(snmp_index)
+                    if path=="system" and name =="interface":
+                        print("at start:")
+                        print(item)
+                        if snmp_index in item:
+                            item.pop(snmp_index)
+                            print("removed:")
+                            print(item)
                     if devindex in item:
                         item.pop(devindex)
                     if uuid in item:
@@ -383,9 +390,7 @@ class Fortigate:
                             service.pop("mode")
                             service["load-balance"]="enable"
             if path == "system" and name == "interface":
-                #print(config)
-                flat_config = [item for sublist in config for item in sublist]
-                sorted_json_object = sorted(flat_config, key=lambda x: (
+                sorted_json_object = sorted(config, key=lambda x: (
                         x.get('type') != 'physical',        # Physical interfaces first
                         x.get('type') != 'aggregate',       # Aggregate interfaces next
                         'vlanid' not in x,                  # VLAN interfaces with 'vlanid' key
