@@ -9,9 +9,6 @@ system vdom-sflow
 system settings
 system interface
 alertemail setting
-antivirus profile
-antivirus quarantine
-antivirus settings
 application custom
 application group
 application rule-settings
@@ -40,12 +37,6 @@ dlp filepattern
 dlp sensitivity
 dnsfilter domain-filter
 dnsfilter profile
-emailfilter block-allow-list
-emailfilter bword
-emailfilter dnsbl
-emailfilter iptrust
-emailfilter mheader
-emailfilter profile
 extension-controller extender
 extension-controller extender-profile
 extension-controller extender-vap
@@ -95,7 +86,6 @@ firewall internet-service-custom-group
 firewall internet-service-definition
 firewall internet-service-extension
 firewall internet-service-group
-firewall internet-service-sld
 firewall internet-service-subapp
 firewall ip-translation
 firewall ippool
@@ -130,15 +120,9 @@ ftp-proxy explicit
 icap profile
 icap server
 icap server-group
-ips custom
-ips rule-settings
-ips sensor
-ips settings
-ips decoder
 log custom-field
 log eventfilter
 log gui-display
-log memorlog null-device
 log setting
 log.tacacs+accounting filter
 log.tacacs+accounting setting
@@ -373,7 +357,6 @@ system csf
 system custom-language
 system replacemsg
 system snmp
-webfilter profile
 webfilter search-engine
 user tacacs+
 user adgrp
@@ -437,7 +420,6 @@ webfilter ips-urlfilter-cache-setting
 wireless-controller global
 wireless-controller inter-controller
 wireless-controller timers
-router static
 ips global
 firewall.shaper per
 firewall wildcard
@@ -470,9 +452,6 @@ system nd
 system network
 system object
 system password
-system probe
-system session
-system sso
 system vne
 system auto
 system automation
@@ -517,6 +496,7 @@ wireless-controller snmp
 wireless-controller ssid-policy
 wireless-controller syslog-profile
 wireless-controller timers
+router static
 wireless-controller utm-profile
 wireless-controller vap
 wireless-controller vap-group
@@ -525,3 +505,6 @@ wireless-controller wids-profile
 wireless-controller wtp
 wireless-controller wtp-group
 wireless-controller wtp-profile
+system probe
+system session
+system sso
