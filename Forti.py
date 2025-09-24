@@ -202,8 +202,6 @@ class Fortigate:
             config = self.api.get(path=path, name=name,parameters=parameters,vdom=vdom).get('results', [])     
             for intf in config:
                 result = self.api.get(path=path, name=name, parameters=parameters, vdom = vdom,mkey=intf['name']).get('results', [])
-                #print("second print:")
-                #print(intf["vdom"]["name"])
                 if vdom == "":
                     if intf["vdom"]["name"] == "root":
                         filtered_config.append(result)
@@ -300,12 +298,8 @@ class Fortigate:
         for item in config:
                 try:
                     if path=="system" and name =="interface":
-                        print("at start:")
-                        print(item)
                         if snmp_index in item:
                             item.pop(snmp_index)
-                            print("removed:")
-                            print(item)
                     if devindex in item:
                         item.pop(devindex)
                     if uuid in item:
